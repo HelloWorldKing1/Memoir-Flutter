@@ -33,16 +33,15 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final ok = await ref.read(authNotifierProvider.notifier).register(
+    await ref.read(authNotifierProvider.notifier).register(
           email: _emailCtrl.text.trim(),
           password: _passwordCtrl.text,
           passwordConfirm: _confirmCtrl.text,
           name: _nameCtrl.text.trim(),
         );
 
-    if (ok && mounted) {
-      context.go(AppRoutes.home);
-    }
+    // 注册+自动登录成功后 AuthStore.onChange 触发 →
+    // isAuthenticatedProvider 更新 → 路由器自动跳转到首页
   }
 
   @override

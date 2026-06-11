@@ -111,10 +111,11 @@ class DiaryListNotifier extends Notifier<DiaryListState> {
     }
   }
 
-  /// 创建日记
+  /// 创建记录
   Future<Diary?> createDiary({
     required String title,
     required String content,
+    required EntryType entryType,
     required Mood mood,
     Weather? weather,
     List<String> tags = const [],
@@ -126,6 +127,7 @@ class DiaryListNotifier extends Notifier<DiaryListState> {
       final record = await _pb.collection('diaries').create(body: {
         'title': title,
         'content': content,
+        'entryType': entryType.value,
         'mood': mood.value,
         if (weather != null) 'weather': weather.value,
         'tags': tags,

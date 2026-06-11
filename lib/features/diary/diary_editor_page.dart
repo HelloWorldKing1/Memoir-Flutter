@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,6 +10,7 @@ import 'diary_notifier.dart';
 /// 日记编辑器（新建 + 编辑）
 ///
 /// [diaryId] 为 null 时是新建模式，否则是编辑模式。
+/// 支持 Markdown 编辑与实时预览切换。
 class DiaryEditorPage extends ConsumerStatefulWidget {
   final String? diaryId;
 
@@ -24,11 +26,13 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
   final _tagCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
+  EntryType _entryType = EntryType.diary;
   Mood _mood = Mood.neutral;
   Weather? _weather;
   final List<String> _tags = [];
   bool _isSaving = false;
   bool _isEditMode = false;
+  bool _isPreview = false;
 
   @override
   void initState() {
@@ -46,6 +50,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
     setState(() {
       _titleCtrl.text = diary.title;
       _contentCtrl.text = diary.content;
+      _entryType = diary.entryType;
       _mood = diary.mood;
       _weather = diary.weather;
       _tags.addAll(diary.tags);
@@ -94,6 +99,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
       final updated = diary.copyWith(
         title: _titleCtrl.text.trim(),
         content: _contentCtrl.text.trim(),
+        entryType: _entryType,
         mood: _mood,
         weather: _weather,
         tags: _tags,
@@ -108,6 +114,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
       final diary = await notifier.createDiary(
         title: _titleCtrl.text.trim(),
         content: _contentCtrl.text.trim(),
+        entryType: _entryType,
         mood: _mood,
         weather: _weather,
         tags: _tags,
@@ -127,8 +134,22 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
-        title: Text(_isEditMode ? '编辑日记' : '写日记'),
+        title: Text(_isEditMode ? '编辑记录' : '写记录'),
         actions: [
+          // 编辑 / 预览切换
+          SegmentedButton<bool>(
+            segments: const [
+              ButtonSegment(value: false, label: Text('编辑'), icon: Icon(Icons.edit, size: 16)),
+              ButtonSegment(value: true, label: Text('预览'), icon: Icon(Icons.visibility, size: 16)),
+            ],
+            selected: {_isPreview},
+            onSelectionChanged: (v) => setState(() => _isPreview = v.first),
+            style: ButtonStyle(
+              visualDensity: VisualDensity.compact,
+              textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 12)),
+            ),
+          ),
+          const SizedBox(width: 12),
           FilledButton(
             onPressed: _isSaving ? null : _save,
             style: FilledButton.styleFrom(
@@ -149,14 +170,14 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
     );
   }
 
-  /// 宽屏布局：编辑区 + 元数据侧栏
+  /// 宽屏布局：编辑/预览区 + 元数据侧栏
   Widget _buildWideLayout(ThemeData theme) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           flex: 3,
-          child: _buildEditor(theme),
+          child: _isPreview ? _buildPreview(theme) : _buildEditor(theme),
         ),
         Container(
           width: 280,
@@ -167,7 +188,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
     );
   }
 
-  /// 窄屏布局：编辑区在上，元数据在下方
+  /// 窄屏布局：元数据在上，编辑/预览区在下
   Widget _buildNarrowLayout(ThemeData theme) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -175,7 +196,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
         children: [
           _buildMetaPanel(theme),
           const SizedBox(height: 16),
-          _buildEditor(theme),
+          _isPreview ? _buildPreview(theme) : _buildEditor(theme),
         ],
       ),
     );
@@ -204,7 +225,11 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
                 maxLines: null,
                 expands: true,
                 textAlignVertical: TextAlignVertical.top,
-                style: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  height: 1.8,
+                  fontFamily: 'monospace',
+                  fontSize: 14,
+                ),
                 decoration: const InputDecoration(
                   hintText: '开始书写...（支持 Markdown）',
                   border: InputBorder.none,
@@ -213,6 +238,68 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Markdown 预览区
+  Widget _buildPreview(ThemeData theme) {
+    final content = _contentCtrl.text.trim();
+    final title = _titleCtrl.text.trim();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (title.isNotEmpty) ...[
+            Text(
+              title,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Divider(),
+            const SizedBox(height: 12),
+          ],
+          if (content.isEmpty)
+            Text(
+              '（暂无内容）',
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontStyle: FontStyle.italic,
+              ),
+            )
+          else
+            MarkdownBody(
+              data: content,
+              selectable: true,
+              styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+                h1: theme.textTheme.headlineMedium,
+                h2: theme.textTheme.titleLarge,
+                h3: theme.textTheme.titleMedium,
+                p: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
+                code: theme.textTheme.bodyMedium?.copyWith(
+                  fontFamily: 'monospace',
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                  fontSize: 13,
+                ),
+                codeblockDecoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                blockquoteDecoration: BoxDecoration(
+                  border: Border(
+                    left: BorderSide(
+                      color: theme.colorScheme.primary,
+                      width: 3,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -228,7 +315,24 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 心情
+            // 记录类型
+            Text('类型', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: EntryType.values.map((type) {
+                final selected = _entryType == type;
+                return ChoiceChip(
+                  selected: selected,
+                  onSelected: (_) => setState(() => _entryType = type),
+                  label: Text('${type.emoji} ${type.label}'),
+                  selectedColor: scheme.primaryContainer,
+                  visualDensity: VisualDensity.compact,
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
             Text('心情', style: theme.textTheme.labelLarge),
             const SizedBox(height: 8),
             Wrap(
@@ -246,7 +350,6 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
               }).toList(),
             ),
             const SizedBox(height: 20),
-            // 天气
             Text('天气（可选）', style: theme.textTheme.labelLarge),
             const SizedBox(height: 8),
             Wrap(
@@ -264,7 +367,6 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
               }).toList(),
             ),
             const SizedBox(height: 20),
-            // 标签
             Text('标签', style: theme.textTheme.labelLarge),
             const SizedBox(height: 8),
             Row(

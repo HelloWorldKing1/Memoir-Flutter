@@ -51,7 +51,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () => context.push(AppRoutes.diaryNew),
-            tooltip: '写日记',
+            tooltip: '写记录',
           ),
         ],
       ),
@@ -105,7 +105,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
             Icon(Icons.auto_stories, size: 64, color: theme.colorScheme.outline),
             const SizedBox(height: 16),
             Text(
-              '还没有日记',
+              '还没有记录',
               style: theme.textTheme.titleMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -240,7 +240,9 @@ class _DiaryCard extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  Text(diary.mood.emoji, style: const TextStyle(fontSize: 20)),
+                  Text(diary.entryType.emoji, style: const TextStyle(fontSize: 18)),
+                  const SizedBox(width: 6),
+                  Text(diary.mood.emoji, style: const TextStyle(fontSize: 18)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

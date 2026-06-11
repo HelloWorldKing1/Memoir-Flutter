@@ -1,7 +1,7 @@
 # Memoir Flutter 多端互通版 (AI 开发指南)
 
 ## 项目概述
-Memoir 是一款轻量级个人灵感记录工具，本版本为 Flutter 多端互通版，支持 iOS / Android / Web / 桌面端。后端采用自托管的 **PocketBase**，数据离线优先，多端实时同步。
+Memoir 是一款轻量级多场景个人记录工具，覆盖灵感碎片、个人感悟、日记、学习总结、长文创作等场景。本版本为 Flutter 多端互通版，支持 iOS / Android / Web / 桌面端。后端采用自托管的 **PocketBase**，数据离线优先，多端实时同步。
 
 ## 技术栈速查
 | 类别 | 技术 | 用途 |
@@ -209,6 +209,7 @@ flutter build linux --release          # Linux
 | --------- | ---------------- | ---------------------------- |
 | title     | String           | 必填，max 200                |
 | content   | Text             | 必填                         |
+| entryType | Select           | inspiration/reflection/diary/summary/article |
 | mood      | Select           | happy/neutral/sad/angry/love |
 | weather   | Select (可选)    | sunny/cloudy/rainy           |
 | tags      | JSON             | 字符串数组                   |

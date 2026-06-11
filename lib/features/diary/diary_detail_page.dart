@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,7 +7,7 @@ import '../../core/routes/app_router.dart';
 import '../../data/models/enums.dart';
 import 'diary_notifier.dart';
 
-/// 日记详情页（查看模式）
+/// 日记详情页（查看模式，Markdown 渲染）
 class DiaryDetailPage extends ConsumerWidget {
   final String diaryId;
 
@@ -134,16 +135,21 @@ class _DiaryContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 类型 + 心情 + 天气 + 日期
           Row(
             children: [
-              Text(mood.emoji, style: const TextStyle(fontSize: 28)),
+              Text(diary.entryType.emoji, style: const TextStyle(fontSize: 28)),
               const SizedBox(width: 8),
               Text(
-                mood.value,
+                diary.entryType.label,
                 style: theme.textTheme.titleSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
+              const SizedBox(width: 12),
+              Text(mood.emoji, style: const TextStyle(fontSize: 24)),
+              const SizedBox(width: 4),
               if (weather != null) ...[
                 const SizedBox(width: 12),
                 Text(weather.emoji, style: const TextStyle(fontSize: 20)),
@@ -165,6 +171,7 @@ class _DiaryContent extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
+          // 标题
           Text(
             diary.title.isEmpty ? '（无标题）' : diary.title,
             style: theme.textTheme.headlineSmall?.copyWith(
@@ -172,9 +179,30 @@ class _DiaryContent extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Text(
-            diary.content,
-            style: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
+          // Markdown 渲染正文
+          MarkdownBody(
+            data: diary.content.isEmpty ? '（暂无内容）' : diary.content,
+            selectable: true,
+            styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+              h1: theme.textTheme.headlineMedium,
+              h2: theme.textTheme.titleLarge,
+              h3: theme.textTheme.titleMedium,
+              p: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
+              code: theme.textTheme.bodyMedium?.copyWith(
+                fontFamily: 'monospace',
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                fontSize: 13,
+              ),
+              codeblockDecoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              blockquoteDecoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(color: theme.colorScheme.primary, width: 3),
+                ),
+              ),
+            ),
           ),
           if (tags.isNotEmpty) ...[
             const SizedBox(height: 24),

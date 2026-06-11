@@ -83,7 +83,7 @@ class _MobileShell extends ConsumerWidget {
                 IconButton(
                   icon: const Icon(Icons.add),
                   onPressed: () => context.push(AppRoutes.diaryNew),
-                  tooltip: '写日记',
+                  tooltip: '写记录',
                 ),
               ],
             )
@@ -104,7 +104,7 @@ class _MobileShell extends ConsumerWidget {
           }
         },
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.book), label: '日记'),
+          NavigationDestination(icon: Icon(Icons.book), label: '记录'),
           NavigationDestination(icon: Icon(Icons.bar_chart), label: '统计'),
         ],
       ),
@@ -156,7 +156,7 @@ class _SidebarHeader extends ConsumerWidget {
           const SizedBox(height: 24),
           _NavItem(
             icon: Icons.book_outlined,
-            label: '日记',
+            label: '记录',
             selected: isHome,
             onTap: () => context.go(AppRoutes.home),
           ),
@@ -248,6 +248,8 @@ class _SidebarUserInfo extends ConsumerWidget {
             icon: const Icon(Icons.logout, size: 18),
             onPressed: () {
               pb.authStore.clear();
+              // AuthStore.clear() 触发 onChange →
+              // isAuthenticatedProvider 更新 → 路由器跳转到登录页
             },
             tooltip: '登出',
             visualDensity: VisualDensity.compact,

@@ -29,14 +29,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final ok = await ref.read(authNotifierProvider.notifier).login(
+    await ref.read(authNotifierProvider.notifier).login(
           _emailCtrl.text.trim(),
           _passwordCtrl.text,
         );
-
-    if (ok && mounted) {
-      context.go(AppRoutes.home);
-    }
+    // 登录成功后 AuthStore.onChange 触发 →
+    // isAuthenticatedProvider 更新 → 路由器自动跳转到首页
   }
 
   @override

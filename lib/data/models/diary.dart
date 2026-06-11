@@ -1,13 +1,15 @@
 import 'enums.dart';
 
-/// 日记实体
+/// 记录实体
 ///
 /// 与 PocketBase `diaries` 集合字段对应。
+/// 支持灵感、感悟、日记、总结、文章等多种场景。
 /// 同时用于 Hive 本地缓存和 JSON 序列化。
 class Diary {
   final String? id;
   final String title;
   final String content;
+  final EntryType entryType;
   final Mood mood;
   final Weather? weather;
   final List<String> tags;
@@ -22,6 +24,7 @@ class Diary {
     this.id,
     required this.title,
     required this.content,
+    this.entryType = EntryType.diary,
     this.mood = Mood.neutral,
     this.weather,
     this.tags = const [],
@@ -42,6 +45,7 @@ class Diary {
       id: record['id'] as String?,
       title: record['title'] as String? ?? '',
       content: record['content'] as String? ?? '',
+      entryType: EntryType.fromValue(record['entryType'] as String?),
       mood: Mood.fromValue(record['mood'] as String? ?? 'neutral'),
       weather: record['weather'] != null
           ? Weather.fromValue(record['weather'] as String?)
@@ -63,6 +67,7 @@ class Diary {
       if (id != null) 'id': id,
       'title': title,
       'content': content,
+      'entryType': entryType.value,
       'mood': mood.value,
       if (weather != null) 'weather': weather!.value,
       'tags': tags,
@@ -76,6 +81,7 @@ class Diary {
       'id': id,
       'title': title,
       'content': content,
+      'entryType': entryType.value,
       'mood': mood.value,
       'weather': weather?.value,
       'tags': tags,
@@ -94,6 +100,7 @@ class Diary {
       id: json['id'] as String?,
       title: json['title'] as String? ?? '',
       content: json['content'] as String? ?? '',
+      entryType: EntryType.fromValue(json['entryType'] as String?),
       mood: Mood.fromValue(json['mood'] as String? ?? 'neutral'),
       weather: json['weather'] != null
           ? Weather.fromValue(json['weather'] as String?)
@@ -115,6 +122,7 @@ class Diary {
     String? id,
     String? title,
     String? content,
+    EntryType? entryType,
     Mood? mood,
     Weather? weather,
     List<String>? tags,
@@ -129,6 +137,7 @@ class Diary {
       id: id ?? this.id,
       title: title ?? this.title,
       content: content ?? this.content,
+      entryType: entryType ?? this.entryType,
       mood: mood ?? this.mood,
       weather: weather ?? this.weather,
       tags: tags ?? this.tags,
