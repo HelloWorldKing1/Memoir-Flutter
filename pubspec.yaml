@@ -1,0 +1,37 @@
+name: memoir_flutter
+description: "Memoir — 轻量级个人灵感记录工具，多端同步 · 离线可用 · 数据自托管"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flutter_riverpod: ^3.3.2
+  riverpod_annotation: ^4.0.3
+  pocketbase: ^0.24.0
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  flutter_secure_storage: ^10.3.1
+  go_router: ^17.3.0
+  fl_chart: ^1.2.0
+  connectivity_plus: ^7.1.1
+  image_picker: ^1.2.2
+  share_plus: ^13.1.0
+  flutter_markdown: ^0.7.7+1
+  markdown_toolbar: ^0.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/fonts/
