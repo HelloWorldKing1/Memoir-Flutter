@@ -75,37 +75,41 @@ class _MobileShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
 
+    // 判断当前选中的导航项
+    int selectedIndex;
+    if (location == AppRoutes.home) {
+      selectedIndex = 0;
+    } else if (location == AppRoutes.diaryList) {
+      selectedIndex = 1;
+    } else if (location == AppRoutes.statistics) {
+      selectedIndex = 2;
+    } else if (location == AppRoutes.settings) {
+      selectedIndex = 3;
+    } else {
+      selectedIndex = -1;
+    }
+
     return Scaffold(
-      appBar: location == AppRoutes.home
-          ? AppBar(
-              title: const Text('Memoir ✨'),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () => context.push(AppRoutes.diaryNew),
-                  tooltip: '写记录',
-                ),
-              ],
-            )
-          : null,
       body: child,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: location == AppRoutes.home
-            ? 0
-            : location == AppRoutes.statistics
-                ? 1
-                : -1,
+        selectedIndex: selectedIndex,
         onDestinationSelected: (i) {
           switch (i) {
             case 0:
               context.go(AppRoutes.home);
             case 1:
+              context.go(AppRoutes.diaryList);
+            case 2:
               context.go(AppRoutes.statistics);
+            case 3:
+              context.go(AppRoutes.settings);
           }
         },
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.book), label: '记录'),
-          NavigationDestination(icon: Icon(Icons.bar_chart), label: '统计'),
+          NavigationDestination(icon: Icon(Icons.home_outlined), label: '首页'),
+          NavigationDestination(icon: Icon(Icons.book_outlined), label: '日记'),
+          NavigationDestination(icon: Icon(Icons.bar_chart_outlined), label: '统计'),
+          NavigationDestination(icon: Icon(Icons.settings_outlined), label: '设置'),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -140,7 +144,6 @@ class _SidebarHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
-    final isHome = location == AppRoutes.home;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
@@ -155,10 +158,17 @@ class _SidebarHeader extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           _NavItem(
-            icon: Icons.book_outlined,
-            label: '记录',
-            selected: isHome,
+            icon: Icons.home_outlined,
+            label: '首页',
+            selected: location == AppRoutes.home,
             onTap: () => context.go(AppRoutes.home),
+          ),
+          const SizedBox(height: 4),
+          _NavItem(
+            icon: Icons.book_outlined,
+            label: '日记',
+            selected: location == AppRoutes.diaryList,
+            onTap: () => context.go(AppRoutes.diaryList),
           ),
           const SizedBox(height: 4),
           _NavItem(

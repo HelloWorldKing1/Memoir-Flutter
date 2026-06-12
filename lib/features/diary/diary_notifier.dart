@@ -4,6 +4,7 @@ import 'package:pocketbase/pocketbase.dart';
 import '../../core/di/providers.dart';
 import '../../data/models/diary.dart';
 import '../../data/models/enums.dart';
+import '../home/home_notifier.dart';
 
 /// 日记列表状态
 class DiaryListState {
@@ -105,6 +106,7 @@ class DiaryListNotifier extends Notifier<DiaryListState> {
       state = state.copyWith(
         diaries: state.diaries.where((d) => d.id != diaryId).toList(),
       );
+      ref.invalidate(homeProvider);
       return true;
     } catch (_) {
       return false;
@@ -138,6 +140,7 @@ class DiaryListNotifier extends Notifier<DiaryListState> {
       state = state.copyWith(
         diaries: [diary, ...state.diaries],
       );
+      ref.invalidate(homeProvider);
       return diary;
     } catch (_) {
       return null;
@@ -151,6 +154,7 @@ class DiaryListNotifier extends Notifier<DiaryListState> {
       state = state.copyWith(
         diaries: state.diaries.map((d) => d.id == diaryId ? diary : d).toList(),
       );
+      ref.invalidate(homeProvider);
       return true;
     } catch (_) {
       return false;
@@ -178,7 +182,9 @@ final diaryProvider = FutureProvider.family<Diary?, String>((ref, diaryId) async
   try {
     final record = await pb.collection('diaries').getOne(diaryId);
     return Diary.fromRecord(record.toJson());
-  } catch (_) {
+  } catch (e) {
+    // ignore: avoid_print
+    print('[diaryProvider] 获取日记 $diaryId 失败: $e');
     return null;
   }
 });

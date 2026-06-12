@@ -10,11 +10,13 @@ import 'diary_notifier.dart';
 /// 日记编辑器（新建 + 编辑）
 ///
 /// [diaryId] 为 null 时是新建模式，否则是编辑模式。
+/// [initialEntryType] 新建模式下预选的记录类型（从快速记录入口传入）。
 /// 支持 Markdown 编辑与实时预览切换。
 class DiaryEditorPage extends ConsumerStatefulWidget {
   final String? diaryId;
+  final EntryType? initialEntryType;
 
-  const DiaryEditorPage({super.key, this.diaryId});
+  const DiaryEditorPage({super.key, this.diaryId, this.initialEntryType});
 
   @override
   ConsumerState<DiaryEditorPage> createState() => _DiaryEditorPageState();
@@ -40,6 +42,8 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
     _isEditMode = widget.diaryId != null;
     if (_isEditMode) {
       Future.microtask(() => _loadDiary());
+    } else if (widget.initialEntryType != null) {
+      _entryType = widget.initialEntryType!;
     }
   }
 

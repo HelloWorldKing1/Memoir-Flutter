@@ -4,12 +4,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/login_page.dart';
 import '../../features/auth/register_page.dart';
+import '../../features/home/home_page.dart';
 import '../../features/diary/diary_list_page.dart';
 import '../../features/diary/diary_detail_page.dart';
 import '../../features/diary/diary_editor_page.dart';
 import '../../features/statistics/statistics_page.dart';
 import '../../features/settings/settings_page.dart';
 import '../../features/shared/app_shell.dart';
+import '../../data/models/enums.dart';
 import '../di/providers.dart';
 
 /// 路由路径常量
@@ -18,6 +20,7 @@ class AppRoutes {
   static const login = '/login';
   static const register = '/register';
   static const home = '/';
+  static const diaryList = '/diary';
   static const statistics = '/statistics';
   static const settings = '/settings';
   static const diaryDetail = '/diary/:id';
@@ -67,28 +70,43 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) => AppShell(child: child),
         routes: [
+          // 首页（Dashboard）
           GoRoute(
             path: AppRoutes.home,
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: HomePage(),
+            ),
+          ),
+          // 日记列表
+          GoRoute(
+            path: AppRoutes.diaryList,
             pageBuilder: (context, state) => const NoTransitionPage(
               child: DiaryListPage(),
             ),
           ),
+          // 统计
           GoRoute(
             path: AppRoutes.statistics,
             pageBuilder: (context, state) => const NoTransitionPage(
               child: StatisticsPage(),
             ),
           ),
+          // 设置
           GoRoute(
             path: AppRoutes.settings,
             pageBuilder: (context, state) => const NoTransitionPage(
               child: SettingsPage(),
             ),
           ),
+          // 新建日记（extra 可为 EntryType 预选类型）
           GoRoute(
             path: AppRoutes.diaryNew,
-            builder: (context, state) => const DiaryEditorPage(),
+            builder: (context, state) {
+              final entryType = state.extra is EntryType ? state.extra as EntryType : null;
+              return DiaryEditorPage(initialEntryType: entryType);
+            },
           ),
+          // 编辑日记
           GoRoute(
             path: AppRoutes.diaryEdit,
             builder: (context, state) {
@@ -96,6 +114,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               return DiaryEditorPage(diaryId: id);
             },
           ),
+          // 日记详情
           GoRoute(
             path: AppRoutes.diaryDetail,
             builder: (context, state) {
