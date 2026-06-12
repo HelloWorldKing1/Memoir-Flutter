@@ -1,0 +1,48 @@
+# Build outputs
+/build/
+.dart_tool/
+*.g.dart
+*.freezed.dart
+*.config.dart
+
+# Dependencies
+.pub-cache/
+.pub/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+
+# IDE & editor
+.idea/
+*.iml
+.vscode/
+.history
+*.swp
+*.pyc
+*.class
+
+# Platform build artifacts
+/android/app/debug/
+/android/app/profile/
+/android/app/release/
+/android/.gradle/
+/android/build/
+/android/local.properties
+/ios/Flutter/Generated.xcconfig
+/ios/Pods/
+/ios/.symlinks/
+/macos/Pods/
+/linux/flutter/
+/windows/flutter/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Testing
+/coverage/
+test/**/*.mocks.dart
+
+# Logs & temp
+*.log
+*.tmp
