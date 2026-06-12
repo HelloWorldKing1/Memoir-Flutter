@@ -155,7 +155,7 @@ class _DiaryContent extends StatelessWidget {
                 Text(weather.emoji, style: const TextStyle(fontSize: 20)),
                 const SizedBox(width: 4),
                 Text(
-                  weather.value,
+                  weather.label,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

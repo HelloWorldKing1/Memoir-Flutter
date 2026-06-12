@@ -194,13 +194,24 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
 
   /// 窄屏布局：元数据在上，编辑/预览区在下
   Widget _buildNarrowLayout(ThemeData theme) {
+    // 移动端给编辑器一个固定最小高度，避免 Expanded 在
+    // SingleChildScrollView 中产生无界约束错误。
+    final screenHeight = MediaQuery.of(context).size.height;
+    final editorMinHeight = (screenHeight * 0.45).clamp(200.0, 500.0);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           _buildMetaPanel(theme),
           const SizedBox(height: 16),
-          _isPreview ? _buildPreview(theme) : _buildEditor(theme),
+          if (_isPreview)
+            _buildPreview(theme)
+          else
+            SizedBox(
+              height: editorMinHeight,
+              child: _buildEditor(theme),
+            ),
         ],
       ),
     );
@@ -347,7 +358,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
                 return ChoiceChip(
                   selected: selected,
                   onSelected: (_) => setState(() => _mood = mood),
-                  label: Text('${mood.emoji} ${mood.value}'),
+                  label: Text('${mood.emoji} ${mood.label}'),
                   selectedColor: scheme.primaryContainer,
                   visualDensity: VisualDensity.compact,
                 );
@@ -365,7 +376,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
                   selected: selected,
                   onSelected: (_) =>
                       setState(() => _weather = selected ? null : weather),
-                  label: Text('${weather.emoji} ${weather.value}'),
+                  label: Text('${weather.emoji} ${weather.label}'),
                   visualDensity: VisualDensity.compact,
                 );
               }).toList(),

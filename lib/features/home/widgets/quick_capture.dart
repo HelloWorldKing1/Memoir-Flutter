@@ -7,22 +7,18 @@ import '../../../data/models/enums.dart';
 /// 快速记录组件。
 ///
 /// 5 种记录类型的快速创建入口，点击进入编辑器并预选类型。
-///
-/// 独立模式（[showTitle] = true）：带「快速记录」标题，桌面横排 / 手机横滑。
-/// 嵌入模式（[showTitle] = false）：仅按钮，用于嵌入 GreetingHeader 右侧。
+/// 桌面端按钮有鼠标悬浮效果（放大 + 加深底色 + 阴影）。
 class QuickCapture extends StatelessWidget {
-  /// 是否展示「快速记录」标题。
   final bool showTitle;
 
   const QuickCapture({super.key, this.showTitle = true});
 
-  /// 每种类型的配色
   static const _typeColors = {
-    EntryType.inspiration: Color(0xFFFFB300), // amber
-    EntryType.reflection: Color(0xFF7C4DFF), // deepPurple
-    EntryType.diary: Color(0xFF448AFF), // blue
-    EntryType.summary: Color(0xFF009688), // teal
-    EntryType.article: Color(0xFF607D8B), // blueGrey
+    EntryType.inspiration: Color(0xFFFFB300),
+    EntryType.reflection: Color(0xFF7C4DFF),
+    EntryType.diary: Color(0xFF448AFF),
+    EntryType.summary: Color(0xFF009688),
+    EntryType.article: Color(0xFF607D8B),
   };
 
   @override
@@ -38,7 +34,6 @@ class QuickCapture extends StatelessWidget {
       );
     }).toList();
 
-    // 嵌入模式：仅按钮
     if (!showTitle) {
       if (isMobile) {
         return SizedBox(
@@ -55,7 +50,6 @@ class QuickCapture extends StatelessWidget {
       return Wrap(spacing: 8, runSpacing: 8, children: buttons);
     }
 
-    // 独立模式：标题 + 按钮
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -84,18 +78,14 @@ class QuickCapture extends StatelessWidget {
         else
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: buttons,
-            ),
+            child: Wrap(spacing: 10, runSpacing: 10, children: buttons),
           ),
       ],
     );
   }
 }
 
-/// 单个快速记录按钮
+/// 单个快速记录按钮 — 支持悬浮 + 点击动画
 class _QuickCaptureButton extends StatefulWidget {
   final EntryType type;
   final Color color;
@@ -113,25 +103,36 @@ class _QuickCaptureButton extends StatefulWidget {
 
 class _QuickCaptureButtonState extends State<_QuickCaptureButton>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _scale;
+  late final AnimationController _hoverCtrl;
+  late final Animation<double> _hoverScale;
+  bool _isHovering = false;
+  bool _isPressed = false;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(
+    _hoverCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 120),
+      duration: const Duration(milliseconds: 200),
     );
-    _scale = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    _hoverScale = Tween<double>(begin: 1.0, end: 1.08).animate(
+      CurvedAnimation(parent: _hoverCtrl, curve: Curves.easeOut),
     );
   }
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _hoverCtrl.dispose();
     super.dispose();
+  }
+
+  void _onHover(bool hovering) {
+    setState(() => _isHovering = hovering);
+    if (hovering) {
+      _hoverCtrl.forward();
+    } else {
+      _hoverCtrl.reverse();
+    }
   }
 
   @override
@@ -140,41 +141,64 @@ class _QuickCaptureButtonState extends State<_QuickCaptureButton>
     final height = widget.compact ? 52.0 : 68.0;
     final emojiSize = widget.compact ? 20.0 : 24.0;
     final labelSize = widget.compact ? 10.0 : 12.0;
+    final color = widget.color;
 
-    return ScaleTransition(
-      scale: _scale,
-      child: GestureDetector(
-        onTapDown: (_) => _ctrl.forward(),
-        onTapUp: (_) {
-          _ctrl.reverse();
-          context.push(AppRoutes.diaryNew, extra: widget.type);
-        },
-        onTapCancel: () => _ctrl.reverse(),
-        child: Container(
-          width: width,
-          height: height,
-          decoration: BoxDecoration(
-            color: widget.color.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: widget.color.withValues(alpha: 0.3),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(widget.type.emoji, style: TextStyle(fontSize: emojiSize)),
-              const SizedBox(height: 2),
-              Text(
-                widget.type.label,
-                style: TextStyle(
-                  fontSize: labelSize,
-                  fontWeight: FontWeight.w500,
-                  color: widget.color.withValues(alpha: 0.85),
-                ),
+    // 悬浮时底色加深
+    final bgAlpha = _isHovering ? 0.22 : 0.10;
+    final borderAlpha = _isHovering ? 0.6 : 0.3;
+
+    return AnimatedScale(
+      scale: _isPressed ? 0.92 : _hoverScale.value,
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.easeOut,
+      child: Material(
+        color: color.withValues(alpha: bgAlpha),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onHover: (hovering) => _onHover(hovering),
+          onTap: () => context.push(AppRoutes.diaryNew, extra: widget.type),
+          onTapDown: (_) => setState(() => _isPressed = true),
+          onTapUp: (_) => setState(() => _isPressed = false),
+          onTapCancel: () => setState(() => _isPressed = false),
+          borderRadius: BorderRadius.circular(12),
+          hoverColor: Colors.transparent,
+          splashColor: color.withValues(alpha: 0.2),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            width: width,
+            height: height,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: color.withValues(alpha: borderAlpha),
+                width: 1,
               ),
-            ],
+              boxShadow: _isHovering
+                  ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.18),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(widget.type.emoji, style: TextStyle(fontSize: emojiSize)),
+                const SizedBox(height: 2),
+                Text(
+                  widget.type.label,
+                  style: TextStyle(
+                    fontSize: labelSize,
+                    fontWeight: FontWeight.w500,
+                    color: color.withValues(alpha: _isHovering ? 1.0 : 0.85),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

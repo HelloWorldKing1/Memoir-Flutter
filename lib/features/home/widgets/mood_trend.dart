@@ -98,7 +98,7 @@ class MoodTrend extends StatelessWidget {
               SizedBox(
                 width: 40,
                 child: Text(
-                  mood.value,
+                  mood.label,
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w500,
                   ),

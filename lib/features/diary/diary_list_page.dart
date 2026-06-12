@@ -171,7 +171,7 @@ class _MoodFilterBar extends StatelessWidget {
             (m) => Padding(
               padding: const EdgeInsets.only(right: 8),
               child: _MoodChip(
-                label: m.value,
+                label: m.label,
                 emoji: m.emoji,
                 isSelected: selected == m,
                 onTap: () => onChanged(selected == m ? null : m),

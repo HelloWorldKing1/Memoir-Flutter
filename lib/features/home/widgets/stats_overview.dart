@@ -49,7 +49,7 @@ class StatsOverview extends StatelessWidget {
         label: '本周心情',
         color: Colors.green,
         isEmoji: weekTopMood != null,
-        subtitle: weekTopMood?.value,
+        subtitle: weekTopMood?.label,
       ),
     ];
 

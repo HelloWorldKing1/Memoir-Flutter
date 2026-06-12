@@ -318,12 +318,12 @@ class HomeNotifier extends AsyncNotifier<HomeState> {
     final topType = sortedTypes.isNotEmpty ? sortedTypes.first.key.label : '日记';
     final secondType = sortedTypes.length > 1 ? sortedTypes[1].key.label : '感悟';
 
-    final topMood = state.weekTopMood?.value ?? '开心';
+    final topMood = state.weekTopMood?.label ?? '开心';
     final topMoodEmoji = state.weekTopMood?.emoji ?? '😊';
 
     // 本周主导心情
-    final firstMoodName = state.weekTopMood?.value ?? '平淡';
-    final lastMoodName = state.weekTopMood?.value ?? '开心';
+    final firstMoodName = state.weekTopMood?.label ?? '平淡';
+    final lastMoodName = state.weekTopMood?.label ?? '开心';
 
     String title = template.title
         .replaceAll('{count}', '$weekD')

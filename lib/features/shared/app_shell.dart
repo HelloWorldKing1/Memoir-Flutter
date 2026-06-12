@@ -75,7 +75,6 @@ class _MobileShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
 
-    // 判断当前选中的导航项
     int selectedIndex;
     if (location == AppRoutes.home) {
       selectedIndex = 0;
@@ -107,7 +106,7 @@ class _MobileShell extends ConsumerWidget {
         },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: '首页'),
-          NavigationDestination(icon: Icon(Icons.book_outlined), label: '日记'),
+          NavigationDestination(icon: Icon(Icons.book_outlined), label: '全部'),
           NavigationDestination(icon: Icon(Icons.bar_chart_outlined), label: '统计'),
           NavigationDestination(icon: Icon(Icons.settings_outlined), label: '设置'),
         ],
@@ -166,7 +165,7 @@ class _SidebarHeader extends ConsumerWidget {
           const SizedBox(height: 4),
           _NavItem(
             icon: Icons.book_outlined,
-            label: '日记',
+            label: '全部',
             selected: location == AppRoutes.diaryList,
             onTap: () => context.go(AppRoutes.diaryList),
           ),
@@ -233,8 +232,13 @@ class _NavItem extends StatelessWidget {
 class _SidebarUserInfo extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pb = ref.watch(pbClientProvider);
+    ref.watch(profileVersionProvider); // 资料变更时重建
+    final pb = ref.read(pbClientProvider);
     final user = pb.authStore.record;
+    final userName = user?.getStringValue('name') ?? '';
+    final userEmail = user?.getStringValue('email') ?? '';
+    final avatar = user?.getStringValue('avatar') ?? '';
+    final hasAvatar = avatar.isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -242,14 +246,24 @@ class _SidebarUserInfo extends ConsumerWidget {
         children: [
           CircleAvatar(
             radius: 16,
-            child: Text(
-              (user?.getStringValue('name') ?? 'U')[0].toUpperCase(),
-            ),
+            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+            backgroundImage: hasAvatar
+                ? NetworkImage(pb.files.getUrl(user!, avatar).toString())
+                : null,
+            child: hasAvatar
+                ? null
+                : Text(
+                    (userName.isNotEmpty ? userName[0] : 'U').toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                  ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              user?.getStringValue('name') ?? user?.getStringValue('email') ?? '',
+              userName.isNotEmpty ? userName : (userEmail.isNotEmpty ? userEmail : '未登录'),
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 13),
             ),
@@ -258,8 +272,6 @@ class _SidebarUserInfo extends ConsumerWidget {
             icon: const Icon(Icons.logout, size: 18),
             onPressed: () {
               pb.authStore.clear();
-              // AuthStore.clear() 触发 onChange →
-              // isAuthenticatedProvider 更新 → 路由器跳转到登录页
             },
             tooltip: '登出',
             visualDensity: VisualDensity.compact,

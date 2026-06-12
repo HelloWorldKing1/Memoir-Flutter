@@ -49,3 +49,15 @@ final currentUserIdProvider = Provider<String?>((ref) {
 final pocketBaseUrlProvider = Provider<String>((ref) {
   return AppConstants.pocketBaseUrl;
 });
+
+/// 用户资料版本号 Provider。
+///
+/// 昵称/头像等更新后 +1，驱动侧边栏等组件刷新。
+final profileVersionProvider =
+    NotifierProvider<ProfileVersionNotifier, int>(ProfileVersionNotifier.new);
+
+class ProfileVersionNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+  void increment() => state++;
+}

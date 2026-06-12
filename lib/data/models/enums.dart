@@ -27,16 +27,19 @@ enum EntryType {
 ///
 /// 与 PocketBase `diaries.mood` Select 字段值一一对应。
 enum Mood {
-  happy('happy', '😊'),
-  neutral('neutral', '😐'),
-  sad('sad', '😢'),
-  angry('angry', '😡'),
-  love('love', '🥰');
+  happy('happy', '开心', '😊'),
+  neutral('neutral', '平淡', '😐'),
+  sad('sad', '难过', '😢'),
+  angry('angry', '生气', '😡'),
+  love('love', '热爱', '🥰');
 
-  const Mood(this.value, this.emoji);
+  const Mood(this.value, this.label, this.emoji);
 
   /// PocketBase 存储值
   final String value;
+
+  /// 中文展示名
+  final String label;
 
   /// 展示用 emoji
   final String emoji;
@@ -54,13 +57,24 @@ enum Mood {
 ///
 /// 与 PocketBase `diaries.weather` Select 字段值一一对应。
 enum Weather {
-  sunny('sunny', '☀️'),
-  cloudy('cloudy', '☁️'),
-  rainy('rainy', '🌧️');
+  sunny('sunny', '晴朗', '☀️'),
+  cloudy('cloudy', '多云', '☁️'),
+  rainy('rainy', '下雨', '🌧️'),
+  snowy('snowy', '下雪', '❄️'),
+  foggy('foggy', '起雾', '🌫️'),
+  windy('windy', '大风', '💨'),
+  stormy('stormy', '暴风雨', '⛈️'),
+  rainbow('rainbow', '彩虹', '🌈');
 
-  const Weather(this.value, this.emoji);
+  const Weather(this.value, this.label, this.emoji);
 
+  /// PocketBase 存储值
   final String value;
+
+  /// 中文展示名
+  final String label;
+
+  /// 展示用 emoji
   final String emoji;
 
   static Weather fromValue(String? value) {
