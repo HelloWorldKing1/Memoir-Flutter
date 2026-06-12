@@ -17,6 +17,8 @@ class DiaryListPage extends ConsumerStatefulWidget {
 
 class _DiaryListPageState extends ConsumerState<DiaryListPage> {
   final _scrollCtrl = ScrollController();
+  final _searchCtrl = TextEditingController();
+  bool _showSearch = false;
 
   @override
   void initState() {
@@ -30,6 +32,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
   @override
   void dispose() {
     _scrollCtrl.dispose();
+    _searchCtrl.dispose();
     super.dispose();
   }
 
@@ -39,24 +42,78 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
     }
   }
 
+  void _onSearchChanged(String value) {
+    ref.read(diaryListProvider.notifier).setSearchQuery(value.trim());
+  }
+
+  void _clearSearch() {
+    _searchCtrl.clear();
+    _onSearchChanged('');
+    setState(() => _showSearch = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final listState = ref.watch(diaryListProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Memoir ✨'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => context.push(AppRoutes.diaryNew),
-            tooltip: '写记录',
-          ),
-        ],
-      ),
+      appBar: _showSearch
+          ? AppBar(
+              leading: BackButton(
+                onPressed: _clearSearch,
+              ),
+              title: TextField(
+                controller: _searchCtrl,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: '搜索标题、内容、标签…',
+                  border: InputBorder.none,
+                  suffixIcon: _searchCtrl.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 20),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            _onSearchChanged('');
+                          },
+                        )
+                      : null,
+                ),
+                onChanged: _onSearchChanged,
+              ),
+            )
+          : AppBar(
+              title: const Text('全部记录'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () => setState(() => _showSearch = true),
+                  tooltip: '搜索',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () => context.push(AppRoutes.diaryNew),
+                  tooltip: '写记录',
+                ),
+              ],
+            ),
       body: Column(
         children: [
+          // 搜索标签（显示当前搜索词）
+          if (listState.isSearching && !_showSearch)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  Chip(
+                    label: Text('🔍 ${listState.searchQuery}'),
+                    deleteIcon: const Icon(Icons.close, size: 16),
+                    onDeleted: _clearSearch,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+            ),
           // 心情筛选栏
           _MoodFilterBar(
             selected: listState.filterMood,
@@ -98,21 +155,26 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
     }
 
     if (state.diaries.isEmpty) {
+      final isSearching = state.isSearching;
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.auto_stories, size: 64, color: theme.colorScheme.outline),
+            Icon(
+              isSearching ? Icons.search_off : Icons.auto_stories,
+              size: 64,
+              color: theme.colorScheme.outline,
+            ),
             const SizedBox(height: 16),
             Text(
-              '还没有记录',
+              isSearching ? '未找到匹配的记录' : '还没有记录',
               style: theme.textTheme.titleMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              '点击右上角 + 开始书写',
+              isSearching ? '试试其他关键词' : '点击右上角 + 开始书写',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.outline,
               ),
@@ -122,26 +184,43 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        await ref.read(diaryListProvider.notifier).loadDiaries(refresh: true);
-      },
-      child: ListView.builder(
-        controller: _scrollCtrl,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: state.diaries.length + (state.hasMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index >= state.diaries.length) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: CircularProgressIndicator(),
+    return Column(
+      children: [
+        // 搜索结果计数
+        if (state.isSearching)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Text(
+              '找到 ${state.diaries.length} 条结果',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.outline,
               ),
-            );
-          }
-          return _DiaryCard(diary: state.diaries[index]);
-        },
-      ),
+            ),
+          ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () async {
+              await ref.read(diaryListProvider.notifier).loadDiaries(refresh: true);
+            },
+            child: ListView.builder(
+              controller: _scrollCtrl,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemCount: state.diaries.length + (state.hasMore ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index >= state.diaries.length) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+                return _DiaryCard(diary: state.diaries[index]);
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -184,7 +263,7 @@ class _MoodFilterBar extends StatelessWidget {
   }
 }
 
-/// 心情 chip
+/// 心情 chip（纯自定义，不依赖 Chip 组件的选中逻辑）
 class _MoodChip extends StatelessWidget {
   final String label;
   final String emoji;
@@ -202,13 +281,24 @@ class _MoodChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    return FilterChip(
-      selected: isSelected,
-      onSelected: (_) => onTap(),
-      label: Text('$emoji $label'),
-      selectedColor: scheme.primaryContainer,
-      checkmarkColor: scheme.primary,
-      visualDensity: VisualDensity.compact,
+    return Material(
+      color: isSelected ? scheme.primaryContainer : scheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Text(
+            '$emoji $label',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              color: isSelected ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

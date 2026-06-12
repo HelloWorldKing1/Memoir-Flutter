@@ -14,6 +14,7 @@ class DiaryListState {
   final int page;
   final bool hasMore;
   final Mood? filterMood;
+  final String searchQuery;
 
   const DiaryListState({
     this.diaries = const [],
@@ -22,7 +23,10 @@ class DiaryListState {
     this.page = 1,
     this.hasMore = true,
     this.filterMood,
+    this.searchQuery = '',
   });
+
+  bool get isSearching => searchQuery.isNotEmpty;
 
   DiaryListState copyWith({
     List<Diary>? diaries,
@@ -31,6 +35,7 @@ class DiaryListState {
     int? page,
     bool? hasMore,
     Mood? filterMood,
+    String? searchQuery,
   }) {
     return DiaryListState(
       diaries: diaries ?? this.diaries,
@@ -39,6 +44,7 @@ class DiaryListState {
       page: page ?? this.page,
       hasMore: hasMore ?? this.hasMore,
       filterMood: filterMood ?? this.filterMood,
+      searchQuery: searchQuery ?? this.searchQuery,
     );
   }
 }
@@ -46,27 +52,41 @@ class DiaryListState {
 /// 日记列表控制器
 class DiaryListNotifier extends Notifier<DiaryListState> {
   PocketBase get _pb => ref.read(pbClientProvider);
+  int _requestSeq = 0;
 
   @override
   DiaryListState build() => const DiaryListState();
 
-  /// 加载日记列表
+  /// 加载日记列表（初始加载 / 滚动分页 / 下拉刷新）
   Future<void> loadDiaries({bool refresh = false}) async {
-    if (state.isLoading) return;
+    if (!refresh && state.isLoading) return;
     if (!refresh && !state.hasMore) return;
+
+    final seq = ++_requestSeq;
+    // 捕获当前条件
+    final mood = state.filterMood;
+    final search = state.searchQuery;
+    final page = refresh ? 1 : state.page;
+    final userId = _pb.authStore.record?.id;
+    if (userId == null) return;
 
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final page = refresh ? 1 : state.page;
-      final userId = _pb.authStore.record?.id;
-      if (userId == null) return;
-
-      final filter = [
+      final filters = <String>[
         'user = "$userId"',
         'isDeleted != true',
-        if (state.filterMood != null) 'mood = "${state.filterMood!.value}"',
-      ].join(' && ');
+        if (mood != null) 'mood = "${mood.value}"',
+      ];
+
+      if (search.isNotEmpty) {
+        final q = search.replaceAll('"', '\\"');
+        filters.add('(title ~ "$q" || content ~ "$q" || tags ~ "$q")');
+      }
+
+      final filter = filters.join(' && ');
+      // ignore: avoid_print
+      print('[diary_list] filter=$filter');
 
       final result = await _pb.collection('diaries').getList(
             page: page,
@@ -74,6 +94,8 @@ class DiaryListNotifier extends Notifier<DiaryListState> {
             filter: filter,
             sort: '-created',
           );
+
+      if (seq != _requestSeq) return;
 
       final newDiaries = result.items
           .map((r) => Diary.fromRecord(r.toJson()))
@@ -86,6 +108,7 @@ class DiaryListNotifier extends Notifier<DiaryListState> {
         hasMore: result.items.length >= 20,
       );
     } catch (e) {
+      if (seq != _requestSeq) return;
       state = state.copyWith(
         isLoading: false,
         error: '加载失败：${e.toString()}',
@@ -95,8 +118,83 @@ class DiaryListNotifier extends Notifier<DiaryListState> {
 
   /// 设置心情筛选
   void setMoodFilter(Mood? mood) {
-    state = state.copyWith(filterMood: mood, error: null);
-    loadDiaries(refresh: true);
+    // ignore: avoid_print
+    print('[diary_list] setMoodFilter $mood (was ${state.filterMood})');
+    if (state.filterMood == mood && state.diaries.isNotEmpty) return;
+    state = state.copyWith(
+      filterMood: mood,
+      diaries: [],
+      page: 1,
+      hasMore: true,
+      error: null,
+    );
+    _load(mood: mood, search: state.searchQuery);
+  }
+
+  /// 设置搜索关键词
+  void setSearchQuery(String query) {
+    final q = query.trim();
+    if (state.searchQuery == q && state.diaries.isNotEmpty) return;
+    state = state.copyWith(
+      searchQuery: q,
+      diaries: [],
+      page: 1,
+      hasMore: true,
+      error: null,
+    );
+    _load(mood: state.filterMood, search: q);
+  }
+
+  /// 执行加载（参数明确传入，不读 state.filterMood/searchQuery）
+  Future<void> _load({required Mood? mood, required String search}) async {
+    final seq = ++_requestSeq;
+    final userId = _pb.authStore.record?.id;
+    if (userId == null) return;
+
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final filters = <String>[
+        'user = "$userId"',
+        'isDeleted != true',
+        if (mood != null) 'mood = "${mood.value}"',
+      ];
+
+      if (search.isNotEmpty) {
+        final q = search.replaceAll('"', '\\"');
+        filters.add('(title ~ "$q" || content ~ "$q" || tags ~ "$q")');
+      }
+
+      final filter = filters.join(' && ');
+      // ignore: avoid_print
+      print('[diary_list] filter=$filter');
+
+      final result = await _pb.collection('diaries').getList(
+            page: 1,
+            perPage: 20,
+            filter: filter,
+            sort: '-created',
+          );
+
+      if (seq != _requestSeq) return;
+
+      final newDiaries = result.items
+          .map((r) => Diary.fromRecord(r.toJson()))
+          .toList();
+
+      state = state.copyWith(
+        diaries: newDiaries,
+        isLoading: false,
+        page: 2,
+        hasMore: result.items.length >= 20,
+      );
+    } catch (e) {
+      if (seq != _requestSeq) return;
+      state = state.copyWith(
+        isLoading: false,
+        error: '加载失败：${e.toString()}',
+      );
+    }
   }
 
   /// 删除日记（软删除）
