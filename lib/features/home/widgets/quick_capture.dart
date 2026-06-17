@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../../core/routes/app_router.dart';
 import '../../../data/models/enums.dart';
 
 /// 快速记录组件。
-///
-/// 5 种记录类型的快速创建入口，点击进入编辑器并预选类型。
-/// 桌面端按钮有鼠标悬浮效果（放大 + 加深底色 + 阴影）。
 class QuickCapture extends StatelessWidget {
   final bool showTitle;
 
@@ -24,7 +22,7 @@ class QuickCapture extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
-    final theme = Theme.of(context);
+    final textTheme = ShadTheme.of(context).textTheme;
 
     final buttons = EntryType.values.map((type) {
       return _QuickCaptureButton(
@@ -57,9 +55,9 @@ class QuickCapture extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Text(
             '快速记录',
-            style: theme.textTheme.titleSmall?.copyWith(
+            style: textTheme.p.copyWith(
               fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurfaceVariant,
+              color: ShadTheme.of(context).colorScheme.mutedForeground,
             ),
           ),
         ),
@@ -85,7 +83,7 @@ class QuickCapture extends StatelessWidget {
   }
 }
 
-/// 单个快速记录按钮 — 支持悬浮 + 点击动画
+/// 单个快速记录按钮
 class _QuickCaptureButton extends StatefulWidget {
   final EntryType type;
   final Color color;
@@ -143,7 +141,6 @@ class _QuickCaptureButtonState extends State<_QuickCaptureButton>
     final labelSize = widget.compact ? 10.0 : 12.0;
     final color = widget.color;
 
-    // 悬浮时底色加深
     final bgAlpha = _isHovering ? 0.22 : 0.10;
     final borderAlpha = _isHovering ? 0.6 : 0.3;
 

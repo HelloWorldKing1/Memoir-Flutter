@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../core/di/providers.dart';
 import '../../data/models/enums.dart';
@@ -41,13 +42,13 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
         _totalDiaries = result.totalItems;
       });
 
-      // 按心情统计
       final counts = <Mood, int>{};
       for (final mood in Mood.values) {
         final moodResult = await pb.collection('diaries').getList(
               page: 1,
               perPage: 1,
-              filter: 'user = "$userId" && mood = "${mood.value}" && isDeleted != true',
+              filter:
+                  'user = "$userId" && mood = "${mood.value}" && isDeleted != true',
               skipTotal: false,
             );
         counts[mood] = moodResult.totalItems;
@@ -66,7 +67,8 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final textTheme = ShadTheme.of(context).textTheme;
+    final scheme = ShadTheme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(title: const Text('统计')),
@@ -77,28 +79,25 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 总日记数
-                  Card(
+                  ShadCard(
                     child: Padding(
                       padding: const EdgeInsets.all(20),
                       child: Row(
                         children: [
-                          Icon(Icons.auto_stories,
-                              size: 40, color: theme.colorScheme.primary),
+                          Icon(LucideIcons.bookOpen,
+                              size: 40, color: scheme.primary),
                           const SizedBox(width: 16),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 '$_totalDiaries',
-                                style: theme.textTheme.headlineMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: textTheme.h2,
                               ),
                               Text(
                                 '日记总数',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
+                                style: textTheme.small.copyWith(
+                                  color: scheme.mutedForeground,
                                 ),
                               ),
                             ],
@@ -108,8 +107,7 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // 心情分布
-                  Text('心情分布', style: theme.textTheme.titleMedium),
+                  Text('心情分布', style: textTheme.h4),
                   const SizedBox(height: 12),
                   ...Mood.values.map((mood) {
                     final count = _moodCounts[mood] ?? 0;
@@ -125,22 +123,11 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
                           const SizedBox(width: 8),
                           SizedBox(
                             width: 60,
-                            child: Text(
-                              mood.value,
-                              style: theme.textTheme.bodyMedium,
-                            ),
+                            child: Text(mood.value, style: textTheme.p),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: LinearProgressIndicator(
-                                value: ratio,
-                                minHeight: 20,
-                                backgroundColor:
-                                    theme.colorScheme.surfaceContainerHighest,
-                              ),
-                            ),
+                            child: ShadProgress(value: ratio),
                           ),
                           const SizedBox(width: 8),
                           SizedBox(
@@ -148,7 +135,7 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
                             child: Text(
                               '$count',
                               textAlign: TextAlign.end,
-                              style: theme.textTheme.bodyMedium?.copyWith(
+                              style: textTheme.p.copyWith(
                                 fontWeight: FontWeight.w600,
                               ),
                             ),

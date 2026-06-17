@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../core/routes/app_router.dart';
 import 'auth_notifier.dart';
@@ -14,33 +15,25 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  final _emailCtrl = TextEditingController();
-  final _passwordCtrl = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+  final _formKey = GlobalKey<ShadFormState>();
   bool _obscure = true;
 
-  @override
-  void dispose() {
-    _emailCtrl.dispose();
-    _passwordCtrl.dispose();
-    super.dispose();
-  }
-
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.saveAndValidate()) return;
 
+    final values = _formKey.currentState!.value;
     await ref.read(authNotifierProvider.notifier).login(
-          _emailCtrl.text.trim(),
-          _passwordCtrl.text,
+          (values['email'] as String).trim(),
+          values['password'] as String,
         );
-    // 登录成功后 AuthStore.onChange 触发 →
-    // isAuthenticatedProvider 更新 → 路由器自动跳转到首页
   }
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
     final error = authState.error;
+    final textTheme = ShadTheme.of(context).textTheme;
+    final scheme = ShadTheme.of(context).colorScheme;
 
     return Scaffold(
       body: Center(
@@ -48,7 +41,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
-            child: Form(
+            child: ShadForm(
               key: _formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -57,87 +50,104 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   Text(
                     'Memoir ✨',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: textTheme.h2,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     '欢迎回来',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                    style: textTheme.muted,
                   ),
                   const SizedBox(height: 40),
                   if (error != null) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.errorContainer,
+                        color: scheme.destructive.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        error.message,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onErrorContainer,
-                          fontSize: 13,
+                        border: Border.all(
+                          color: scheme.destructive.withValues(alpha: 0.3),
                         ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            LucideIcons.alertCircle,
+                            size: 16,
+                            color: scheme.destructive,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              error.message,
+                              style: TextStyle(
+                                color: scheme.destructiveForeground,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),
                   ],
-                  TextFormField(
-                    controller: _emailCtrl,
+                  ShadInputFormField(
+                    id: 'email',
+                    leading: const Icon(LucideIcons.mail, size: 18),
+                    label: const Text('邮箱'),
+                    placeholder: const Text('请输入邮箱'),
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      labelText: '邮箱',
-                      prefixIcon: Icon(Icons.email_outlined),
-                    ),
                     validator: (v) {
-                      if (v == null || v.trim().isEmpty) return '请输入邮箱';
+                      if (v.isEmpty) return '请输入邮箱';
                       if (!v.contains('@')) return '邮箱格式不正确';
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordCtrl,
+                  ShadInputFormField(
+                    id: 'password',
+                    leading: const Icon(LucideIcons.lock, size: 18),
+                    label: const Text('密码'),
+                    placeholder: const Text('请输入密码'),
                     obscureText: _obscure,
                     textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _login(),
-                    decoration: InputDecoration(
-                      labelText: '密码',
-                      prefixIcon: const Icon(Icons.lock_outlined),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => setState(() => _obscure = !_obscure),
+                    trailing: ShadIconButton.ghost(
+                      iconSize: 18,
+                      icon: Icon(
+                        _obscure ? LucideIcons.eyeOff : LucideIcons.eye,
                       ),
+                      onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                     validator: (v) {
-                      if (v == null || v.isEmpty) return '请输入密码';
+                      if (v.isEmpty) return '请输入密码';
                       return null;
                     },
                   ),
                   const SizedBox(height: 24),
-                  FilledButton(
+                  ShadButton(
                     onPressed: authState.isLoading ? null : _login,
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: authState.isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                    width: double.infinity,
+                    leading: authState.isLoading
+                        ? SizedBox.square(
+                            dimension: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: scheme.primaryForeground,
+                            ),
                           )
-                        : const Text('登录', style: TextStyle(fontSize: 16)),
+                        : null,
+                    child: Text(
+                      '登录',
+                      style: const TextStyle(fontSize: 16),
+                    ),
                   ),
                   const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () => context.push(AppRoutes.register),
-                    child: const Text('还没有账户？去注册'),
+                  Center(
+                    child: ShadButton.link(
+                      onPressed: () => context.push(AppRoutes.register),
+                      child: const Text('还没有账户？去注册'),
+                    ),
                   ),
                 ],
               ),

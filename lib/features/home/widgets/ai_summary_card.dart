@@ -1,22 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../home_notifier.dart';
 
 /// AI 近期总结卡片。
-///
-/// 展示自然语言风格的一周写作总结。
-/// 支持 4 种状态：加载中、数据不足、错误、就绪。
-/// 当前为 Mock 数据展示，后续接入真实 AI。
 class AiSummaryCard extends ConsumerWidget {
   const AiSummaryCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final homeAsync = ref.watch(homeProvider);
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
+    final scheme = ShadTheme.of(context).colorScheme;
+    final isDark = ShadTheme.of(context).brightness == Brightness.dark;
 
     final aiSummary = homeAsync.value?.aiSummary ?? const AiSummaryLoading();
 
@@ -34,10 +30,7 @@ class AiSummaryCard extends ConsumerWidget {
           ),
           borderRadius: BorderRadius.circular(16),
           border: Border(
-            left: BorderSide(
-              color: scheme.primary,
-              width: 4,
-            ),
+            left: BorderSide(color: scheme.primary, width: 4),
           ),
         ),
         child: Padding(
@@ -45,30 +38,26 @@ class AiSummaryCard extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 标题行
               Row(
                 children: [
-                  Text('✨', style: TextStyle(fontSize: 20)),
+                  const Text('✨', style: TextStyle(fontSize: 20)),
                   const SizedBox(width: 8),
                   Text(
                     'AI 周报总结',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: ShadTheme.of(context).textTheme.p.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                   const Spacer(),
                   if (aiSummary is AiSummaryReady)
-                    IconButton(
-                      icon: const Icon(Icons.refresh, size: 20),
+                    ShadIconButton.ghost(
+                      icon: const Icon(LucideIcons.refreshCw, size: 18),
                       onPressed: () =>
                           ref.read(homeProvider.notifier).regenerateAiSummary(),
-                      tooltip: '刷新总结',
-                      visualDensity: VisualDensity.compact,
                     ),
                 ],
               ),
               const SizedBox(height: 12),
-              // 内容区
               _buildContent(context, aiSummary, ref),
             ],
           ),
@@ -77,92 +66,78 @@ class AiSummaryCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, AiSummaryState state, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+  Widget _buildContent(
+      BuildContext context, AiSummaryState state, WidgetRef ref) {
+    final textTheme = ShadTheme.of(context).textTheme;
+    final scheme = ShadTheme.of(context).colorScheme;
 
     return switch (state) {
-      AiSummaryLoading() => _ShimmerPlaceholder(theme: theme),
+      AiSummaryLoading() => _ShimmerPlaceholder(),
       AiSummaryInsufficient(currentCount: final cur, requiredCount: final req) =>
         Column(
           children: [
             const SizedBox(height: 8),
-            Icon(Icons.auto_awesome, size: 32, color: scheme.outline),
+            Icon(LucideIcons.sparkles, size: 32, color: scheme.mutedForeground),
             const SizedBox(height: 12),
             Text(
               '📝  记录太少啦',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
+              style: textTheme.p.copyWith(color: scheme.mutedForeground),
             ),
             const SizedBox(height: 6),
             Text(
               '再写几篇日记，AI 就能为你生成专属总结\n至少需要 $req 篇记录（当前 $cur 篇）',
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.outline,
-              ),
+              style: textTheme.small.copyWith(color: scheme.mutedForeground),
             ),
           ],
         ),
       AiSummaryError(message: final msg) => Column(
           children: [
-            Icon(Icons.error_outline, size: 32, color: scheme.error),
+            Icon(LucideIcons.alertTriangle, size: 32, color: scheme.destructive),
             const SizedBox(height: 12),
             Text(
               '😵  $msg',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: scheme.error,
-              ),
+              style: textTheme.p.copyWith(color: scheme.destructive),
             ),
             const SizedBox(height: 8),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.refresh, size: 16),
-              label: const Text('重试'),
+            ShadButton.outline(
+              leading: const Icon(LucideIcons.refreshCw, size: 16),
+              child: const Text('重试'),
               onPressed: () =>
                   ref.read(homeProvider.notifier).regenerateAiSummary(),
             ),
           ],
         ),
-      AiSummaryReady(title: final t, body: final b) =>
-        Column(
+      AiSummaryReady(title: final t, body: final b) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              t,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                height: 1.6,
-              ),
-            ),
+            Text(t, style: textTheme.p.copyWith(fontWeight: FontWeight.w600, height: 1.6)),
             const SizedBox(height: 8),
             Text(
               b,
-              style: theme.textTheme.bodyMedium?.copyWith(
+              style: textTheme.small.copyWith(
                 height: 1.6,
-                color: scheme.onSurface.withValues(alpha: 0.85),
+                color: scheme.foreground.withValues(alpha: 0.85),
               ),
             ),
             const SizedBox(height: 12),
-            const Divider(height: 1),
+            const ShadSeparator.horizontal(),
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.auto_awesome, size: 14, color: scheme.outline),
+                Icon(LucideIcons.sparkles, size: 14, color: scheme.mutedForeground),
                 const SizedBox(width: 4),
                 Text(
                   'AI 生成 · 仅供参考',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: scheme.outline,
+                  style: textTheme.small.copyWith(
+                    color: scheme.mutedForeground,
                     fontStyle: FontStyle.italic,
                   ),
                 ),
                 const Spacer(),
                 Text(
                   '基于近 7 天记录',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: scheme.outline,
-                  ),
+                  style: textTheme.small.copyWith(color: scheme.mutedForeground),
                 ),
               ],
             ),
@@ -174,9 +149,6 @@ class AiSummaryCard extends ConsumerWidget {
 
 /// Shimmer 骨架占位
 class _ShimmerPlaceholder extends StatefulWidget {
-  final ThemeData theme;
-  const _ShimmerPlaceholder({required this.theme});
-
   @override
   State<_ShimmerPlaceholder> createState() => _ShimmerPlaceholderState();
 }
@@ -202,13 +174,13 @@ class _ShimmerPlaceholderState extends State<_ShimmerPlaceholder>
 
   @override
   Widget build(BuildContext context) {
-    final scheme = widget.theme.colorScheme;
+    final scheme = ShadTheme.of(context).colorScheme;
 
     return AnimatedBuilder(
       animation: _ctrl,
       builder: (context, _) {
         final opacity = 0.3 + (_ctrl.value * 0.4);
-        final color = scheme.onSurface.withValues(alpha: opacity);
+        final color = scheme.foreground.withValues(alpha: opacity);
 
         return Column(
           children: [

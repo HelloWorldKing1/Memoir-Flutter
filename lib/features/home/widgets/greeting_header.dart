@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../../core/di/providers.dart';
 
 /// 问候头部组件。
-///
-/// 左侧：头像 + 时段问候 + 用户名称 + 日期
-/// 右侧：嵌入组件（快速记录等）
 class GreetingHeader extends ConsumerWidget {
   final Widget? trailing;
 
@@ -14,15 +12,15 @@ class GreetingHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(profileVersionProvider); // 资料变更时重建
+    ref.watch(profileVersionProvider);
     final pb = ref.read(pbClientProvider);
     final user = pb.authStore.record;
     final userName = user?.getStringValue('name') ?? '';
     final avatar = user?.getStringValue('avatar') ?? '';
     final hasAvatar = avatar.isNotEmpty;
 
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final textTheme = ShadTheme.of(context).textTheme;
+    final scheme = ShadTheme.of(context).colorScheme;
     final now = DateTime.now();
     final isDesktop = MediaQuery.of(context).size.width >= 1200;
 
@@ -38,22 +36,12 @@ class GreetingHeader extends ConsumerWidget {
         '${now.year}年${now.month}月${now.day}日 ${weekDays[now.weekday - 1]}';
     final displayName = userName.isNotEmpty ? userName : '你好';
 
-    // 头像 widget（复用桌面/移动端）
-    final avatarWidget = CircleAvatar(
-      radius: isDesktop ? 24 : 20,
-      backgroundColor: scheme.primaryContainer,
-      backgroundImage: hasAvatar
-          ? NetworkImage(pb.files.getUrl(user!, avatar).toString())
-          : null,
-      child: hasAvatar
-          ? null
-          : Text(
-              (displayName.isNotEmpty ? displayName[0] : '你').toUpperCase(),
-              style: TextStyle(
-                fontSize: isDesktop ? 20 : 18,
-                color: scheme.onPrimaryContainer,
-              ),
-            ),
+    final avatarWidget = ShadAvatar(
+      hasAvatar ? pb.files.getUrl(user!, avatar).toString() : '',
+      placeholder: Text(
+        (displayName.isNotEmpty ? displayName[0] : '你').toUpperCase(),
+      ),
+      size: Size.square(isDesktop ? 48 : 40),
     );
 
     if (isDesktop) {
@@ -63,8 +51,8 @@ class GreetingHeader extends ConsumerWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              scheme.primaryContainer.withValues(alpha: 0.4),
-              scheme.secondaryContainer.withValues(alpha: 0.3),
+              scheme.primary.withValues(alpha: 0.08),
+              scheme.secondary.withValues(alpha: 0.06),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -73,10 +61,8 @@ class GreetingHeader extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            // 头像
             avatarWidget,
             const SizedBox(width: 14),
-            // 问候文字
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,28 +70,20 @@ class GreetingHeader extends ConsumerWidget {
                 children: [
                   Text(
                     '$emoji $greeting，$displayName！',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: textTheme.h4,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    dateStr,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
+                  Text(dateStr, style: textTheme.muted),
                 ],
               ),
             ),
             const SizedBox(width: 12),
-            ?trailing,
+            if (trailing != null) trailing!,
           ],
         ),
       );
     }
 
-    // 移动 / 平板：头像 + 问候横向排列，快速记录在下方
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Column(
@@ -121,17 +99,10 @@ class GreetingHeader extends ConsumerWidget {
                   children: [
                     Text(
                       '$emoji $greeting，$displayName！',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: textTheme.large,
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      dateStr,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
+                    Text(dateStr, style: textTheme.muted),
                   ],
                 ),
               ),

@@ -2,16 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../core/routes/app_router.dart';
 import '../../data/models/enums.dart';
 import 'diary_notifier.dart';
 
 /// 日记编辑器（新建 + 编辑）
-///
-/// [diaryId] 为 null 时是新建模式，否则是编辑模式。
-/// [initialEntryType] 新建模式下预选的记录类型（从快速记录入口传入）。
-/// 支持 Markdown 编辑与实时预览切换。
 class DiaryEditorPage extends ConsumerStatefulWidget {
   final String? diaryId;
   final EntryType? initialEntryType;
@@ -86,9 +83,13 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_titleCtrl.text.trim().isEmpty && _contentCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('标题或内容至少填写一项')),
-      );
+      if (mounted) {
+        ShadToaster.of(context).show(
+          const ShadToast(
+            title: Text('标题或内容至少填写一项'),
+          ),
+        );
+      }
       return;
     }
 
@@ -132,7 +133,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final scheme = ShadTheme.of(context).colorScheme;
     final isDesktop = MediaQuery.of(context).size.width >= 900;
 
     return Scaffold(
@@ -140,11 +141,16 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
         leading: const BackButton(),
         title: Text(_isEditMode ? '编辑记录' : '写记录'),
         actions: [
-          // 编辑 / 预览切换
           SegmentedButton<bool>(
             segments: const [
-              ButtonSegment(value: false, label: Text('编辑'), icon: Icon(Icons.edit, size: 16)),
-              ButtonSegment(value: true, label: Text('预览'), icon: Icon(Icons.visibility, size: 16)),
+              ButtonSegment(
+                  value: false,
+                  label: Text('编辑'),
+                  icon: Icon(Icons.edit, size: 16)),
+              ButtonSegment(
+                  value: true,
+                  label: Text('预览'),
+                  icon: Icon(Icons.visibility, size: 16)),
             ],
             selected: {_isPreview},
             onSelectionChanged: (v) => setState(() => _isPreview = v.first),
@@ -154,48 +160,44 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
             ),
           ),
           const SizedBox(width: 12),
-          FilledButton(
+          ShadButton(
             onPressed: _isSaving ? null : _save,
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-            ),
-            child: _isSaving
-                ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+            leading: _isSaving
+                ? SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: scheme.primaryForeground,
+                    ),
                   )
-                : const Text('保存'),
+                : null,
+            child: const Text('保存'),
           ),
           const SizedBox(width: 8),
         ],
       ),
-      body: isDesktop ? _buildWideLayout(theme) : _buildNarrowLayout(theme),
+      body: isDesktop ? _buildWideLayout() : _buildNarrowLayout(),
     );
   }
 
-  /// 宽屏布局：编辑/预览区 + 元数据侧栏
-  Widget _buildWideLayout(ThemeData theme) {
+  Widget _buildWideLayout() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           flex: 3,
-          child: _isPreview ? _buildPreview(theme) : _buildEditor(theme),
+          child: _isPreview ? _buildPreview() : _buildEditor(),
         ),
         Container(
           width: 280,
           padding: const EdgeInsets.all(16),
-          child: _buildMetaPanel(theme),
+          child: _buildMetaPanel(),
         ),
       ],
     );
   }
 
-  /// 窄屏布局：元数据在上，编辑/预览区在下
-  Widget _buildNarrowLayout(ThemeData theme) {
-    // 移动端给编辑器一个固定最小高度，避免 Expanded 在
-    // SingleChildScrollView 中产生无界约束错误。
+  Widget _buildNarrowLayout() {
     final screenHeight = MediaQuery.of(context).size.height;
     final editorMinHeight = (screenHeight * 0.45).clamp(200.0, 500.0);
 
@@ -203,22 +205,20 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _buildMetaPanel(theme),
+          _buildMetaPanel(),
           const SizedBox(height: 16),
           if (_isPreview)
-            _buildPreview(theme)
+            _buildPreview()
           else
-            SizedBox(
-              height: editorMinHeight,
-              child: _buildEditor(theme),
-            ),
+            SizedBox(height: editorMinHeight, child: _buildEditor()),
         ],
       ),
     );
   }
 
-  /// 编辑区
-  Widget _buildEditor(ThemeData theme) {
+  Widget _buildEditor() {
+    final textTheme = ShadTheme.of(context).textTheme;
+
     return Form(
       key: _formKey,
       child: Padding(
@@ -227,7 +227,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
           children: [
             TextFormField(
               controller: _titleCtrl,
-              style: theme.textTheme.titleLarge,
+              style: textTheme.large,
               decoration: const InputDecoration(
                 hintText: '标题',
                 border: InputBorder.none,
@@ -240,7 +240,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
                 maxLines: null,
                 expands: true,
                 textAlignVertical: TextAlignVertical.top,
-                style: theme.textTheme.bodyLarge?.copyWith(
+                style: const TextStyle(
                   height: 1.8,
                   fontFamily: 'monospace',
                   fontSize: 14,
@@ -257,10 +257,12 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
     );
   }
 
-  /// Markdown 预览区
-  Widget _buildPreview(ThemeData theme) {
+  Widget _buildPreview() {
     final content = _contentCtrl.text.trim();
     final title = _titleCtrl.text.trim();
+    final textTheme = ShadTheme.of(context).textTheme;
+    final scheme = ShadTheme.of(context).colorScheme;
+    final themeData = Theme.of(context);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -268,21 +270,16 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (title.isNotEmpty) ...[
-            Text(
-              title,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text(title, style: textTheme.h3),
             const SizedBox(height: 4),
-            const Divider(),
+            const ShadSeparator.horizontal(),
             const SizedBox(height: 12),
           ],
           if (content.isEmpty)
             Text(
               '（暂无内容）',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: TextStyle(
+                color: scheme.mutedForeground,
                 fontStyle: FontStyle.italic,
               ),
             )
@@ -290,26 +287,23 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
             MarkdownBody(
               data: content,
               selectable: true,
-              styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-                h1: theme.textTheme.headlineMedium,
-                h2: theme.textTheme.titleLarge,
-                h3: theme.textTheme.titleMedium,
-                p: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
-                code: theme.textTheme.bodyMedium?.copyWith(
+              styleSheet: MarkdownStyleSheet.fromTheme(themeData).copyWith(
+                h1: themeData.textTheme.headlineMedium,
+                h2: themeData.textTheme.titleLarge,
+                h3: themeData.textTheme.titleMedium,
+                p: themeData.textTheme.bodyLarge?.copyWith(height: 1.8),
+                code: themeData.textTheme.bodyMedium?.copyWith(
                   fontFamily: 'monospace',
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                  backgroundColor: themeData.colorScheme.surfaceContainerHighest,
                   fontSize: 13,
                 ),
                 codeblockDecoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
+                  color: themeData.colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 blockquoteDecoration: BoxDecoration(
                   border: Border(
-                    left: BorderSide(
-                      color: theme.colorScheme.primary,
-                      width: 3,
-                    ),
+                    left: BorderSide(color: scheme.primary, width: 3),
                   ),
                 ),
               ),
@@ -319,92 +313,80 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
     );
   }
 
-  /// 元数据面板：心情、天气、标签
-  Widget _buildMetaPanel(ThemeData theme) {
-    final scheme = theme.colorScheme;
+  Widget _buildMetaPanel() {
+    final textTheme = ShadTheme.of(context).textTheme;
 
-    return Card(
+    return ShadCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 记录类型
-            Text('类型', style: theme.textTheme.labelLarge),
+            Text('类型', style: textTheme.small),
             const SizedBox(height: 8),
             Wrap(
               spacing: 6,
               runSpacing: 6,
               children: EntryType.values.map((type) {
                 final selected = _entryType == type;
-                return ChoiceChip(
+                return _SelectableBadge(
                   selected: selected,
-                  onSelected: (_) => setState(() => _entryType = type),
-                  label: Text('${type.emoji} ${type.label}'),
-                  selectedColor: scheme.primaryContainer,
-                  visualDensity: VisualDensity.compact,
+                  onTap: () => setState(() => _entryType = type),
+                  child: Text('${type.emoji} ${type.label}',
+                      style: const TextStyle(fontSize: 12)),
                 );
               }).toList(),
             ),
             const SizedBox(height: 20),
-            Text('心情', style: theme.textTheme.labelLarge),
+            Text('心情', style: textTheme.small),
             const SizedBox(height: 8),
             Wrap(
               spacing: 6,
               runSpacing: 6,
               children: Mood.values.map((mood) {
                 final selected = _mood == mood;
-                return ChoiceChip(
+                return _SelectableBadge(
                   selected: selected,
-                  onSelected: (_) => setState(() => _mood = mood),
-                  label: Text('${mood.emoji} ${mood.label}'),
-                  selectedColor: scheme.primaryContainer,
-                  visualDensity: VisualDensity.compact,
+                  onTap: () => setState(() => _mood = mood),
+                  child: Text('${mood.emoji} ${mood.label}',
+                      style: const TextStyle(fontSize: 12)),
                 );
               }).toList(),
             ),
             const SizedBox(height: 20),
-            Text('天气（可选）', style: theme.textTheme.labelLarge),
+            Text('天气（可选）', style: textTheme.small),
             const SizedBox(height: 8),
             Wrap(
               spacing: 6,
               runSpacing: 6,
               children: Weather.values.map((weather) {
                 final selected = _weather == weather;
-                return ChoiceChip(
+                return _SelectableBadge(
                   selected: selected,
-                  onSelected: (_) =>
+                  onTap: () =>
                       setState(() => _weather = selected ? null : weather),
-                  label: Text('${weather.emoji} ${weather.label}'),
-                  visualDensity: VisualDensity.compact,
+                  child: Text('${weather.emoji} ${weather.label}',
+                      style: const TextStyle(fontSize: 12)),
                 );
               }).toList(),
             ),
             const SizedBox(height: 20),
-            Text('标签', style: theme.textTheme.labelLarge),
+            Text('标签', style: textTheme.small),
             const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
-                  child: TextField(
+                  child: ShadInput(
                     controller: _tagCtrl,
-                    decoration: const InputDecoration(
-                      hintText: '输入标签',
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                    ),
+                    placeholder: const Text('输入标签'),
                     onSubmitted: (_) => _addTag(),
                   ),
                 ),
                 const SizedBox(width: 8),
-                IconButton(
+                ShadIconButton.ghost(
+                  icon: const Icon(LucideIcons.plusCircle, size: 20),
                   onPressed: _addTag,
-                  icon: const Icon(Icons.add_circle_outlined),
-                  visualDensity: VisualDensity.compact,
                 ),
               ],
             ),
@@ -414,12 +396,18 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
                 spacing: 6,
                 runSpacing: 4,
                 children: _tags.map((tag) {
-                  return Chip(
-                    label: Text('#$tag', style: const TextStyle(fontSize: 12)),
-                    deleteIcon: const Icon(Icons.close, size: 16),
-                    onDeleted: () => _removeTag(tag),
-                    visualDensity: VisualDensity.compact,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  return ShadBadge.secondary(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('#$tag', style: const TextStyle(fontSize: 12)),
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () => _removeTag(tag),
+                          child: const Icon(LucideIcons.x, size: 12),
+                        ),
+                      ],
+                    ),
                   );
                 }).toList(),
               ),
@@ -428,5 +416,27 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
         ),
       ),
     );
+  }
+}
+
+/// 可选择的 Badge（替代 ChoiceChip）
+class _SelectableBadge extends StatelessWidget {
+  final bool selected;
+  final VoidCallback onTap;
+  final Widget child;
+
+  const _SelectableBadge({
+    required this.selected,
+    required this.onTap,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return selected
+        ? ShadBadge(child: InkWell(onTap: onTap, child: child))
+        : ShadBadge.secondary(
+            child: InkWell(onTap: onTap, child: child),
+          );
   }
 }

@@ -1,20 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../../data/models/enums.dart';
 
 /// 心情趋势组件。
-///
-/// 展示近 7 天心情分布条形图 + 智能建议。
 class MoodTrend extends StatelessWidget {
-  /// 近 7 天心情分布计数
   final Map<Mood, int> moodDistribution;
 
-  const MoodTrend({
-    super.key,
-    required this.moodDistribution,
-  });
+  const MoodTrend({super.key, required this.moodDistribution});
 
-  /// 心情颜色映射
   static const _moodColors = {
     Mood.happy: Color(0xFF4CAF50),
     Mood.neutral: Color(0xFF9E9E9E),
@@ -25,64 +19,62 @@ class MoodTrend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final textTheme = ShadTheme.of(context).textTheme;
+    final scheme = ShadTheme.of(context).colorScheme;
     final total = moodDistribution.values.fold<int>(0, (a, b) => a + b);
     final topMood = _topMood();
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: ShadCard(
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 标题
             Row(
               children: [
-                Icon(Icons.insights, size: 18, color: scheme.primary),
+                Icon(LucideIcons.trendingUp, size: 18, color: scheme.primary),
                 const SizedBox(width: 6),
                 Text(
                   '心情趋势（近7天）',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: textTheme.p.copyWith(fontWeight: FontWeight.w600),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            // 心情分布条形图
             if (total == 0)
-              _buildEmpty(theme)
+              _buildEmpty(textTheme, scheme)
             else
-              _buildDistribution(theme, scheme, total),
-            // 建议
+              _buildDistribution(textTheme, scheme, total),
             if (total > 0) ...[
-              const Divider(height: 24),
-              _buildSuggestion(theme, topMood, total),
+              const SizedBox(height: 8),
+              const ShadSeparator.horizontal(),
+              const SizedBox(height: 8),
+              _buildSuggestion(context, textTheme, topMood, total),
             ],
           ],
         ),
       ),
+      ),
     );
   }
 
-  Widget _buildEmpty(ThemeData theme) {
+  Widget _buildEmpty(ShadTextTheme textTheme, ShadColorScheme scheme) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: Text(
           '暂无心情数据\n写几篇日记后这里会展示心情分布',
           textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.outline,
-          ),
+          style: textTheme.small.copyWith(color: scheme.mutedForeground),
         ),
       ),
     );
   }
 
-  Widget _buildDistribution(ThemeData theme, ColorScheme scheme, int total) {
+  Widget _buildDistribution(
+      ShadTextTheme textTheme, ShadColorScheme scheme, int total) {
     return Column(
       children: Mood.values.map((mood) {
         final count = moodDistribution[mood] ?? 0;
@@ -99,9 +91,7 @@ class MoodTrend extends StatelessWidget {
                 width: 40,
                 child: Text(
                   mood.label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: textTheme.small.copyWith(fontWeight: FontWeight.w500),
                 ),
               ),
               const SizedBox(width: 6),
@@ -109,24 +99,12 @@ class MoodTrend extends StatelessWidget {
                 width: 28,
                 child: Text(
                   '$count',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: scheme.outline,
-                  ),
+                  style: textTheme.small.copyWith(color: scheme.mutedForeground),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: ratio,
-                    minHeight: 14,
-                    backgroundColor: scheme.surfaceContainerHighest,
-                    valueColor: AlwaysStoppedAnimation(
-                      ratio > 0 ? color : Colors.transparent,
-                    ),
-                  ),
-                ),
+                child: _buildProgressBar(ratio, color),
               ),
               const SizedBox(width: 8),
               SizedBox(
@@ -134,9 +112,9 @@ class MoodTrend extends StatelessWidget {
                 child: Text(
                   '${(ratio * 100).round()}%',
                   textAlign: TextAlign.end,
-                  style: theme.textTheme.labelSmall?.copyWith(
+                  style: textTheme.small.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: scheme.onSurfaceVariant,
+                    color: scheme.mutedForeground,
                   ),
                 ),
               ),
@@ -147,20 +125,21 @@ class MoodTrend extends StatelessWidget {
     );
   }
 
-  Widget _buildSuggestion(ThemeData theme, Mood? topMood, int total) {
-    final scheme = theme.colorScheme;
-    final (emoji, text) = _suggestionFor(topMood, total);
+  Widget _buildSuggestion(BuildContext context,
+      ShadTextTheme textTheme, Mood? topMood, int total) {
+    final scheme = ShadTheme.of(context).colorScheme;
+    final (_, text) = _suggestionFor(topMood, total);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('💬', style: TextStyle(fontSize: 18)),
+        const Text('💬', style: TextStyle(fontSize: 18)),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
+            style: textTheme.small.copyWith(
+              color: scheme.mutedForeground,
               height: 1.5,
             ),
           ),
@@ -201,6 +180,13 @@ class MoodTrend extends StatelessWidget {
               '把这些动人的瞬间记录下来吧，它们是生命中最值得珍藏的部分 💕'
         ),
     };
+  }
+
+  Widget _buildProgressBar(double value, Color color) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: ShadProgress(value: value),
+    );
   }
 
   Mood? _topMood() {

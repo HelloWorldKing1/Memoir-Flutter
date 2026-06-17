@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../core/routes/app_router.dart';
 import '../../data/models/enums.dart';
@@ -23,7 +24,8 @@ class DiaryDetailPage extends ConsumerWidget {
     }
 
     final diaryAsync = ref.watch(diaryProvider(diaryId));
-    final theme = Theme.of(context);
+    final scheme = ShadTheme.of(context).colorScheme;
+    final textTheme = ShadTheme.of(context).textTheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -31,20 +33,18 @@ class DiaryDetailPage extends ConsumerWidget {
         actions: [
           diaryAsync.whenOrNull(data: (diary) {
                 if (diary == null) return null;
-                return IconButton(
-                  icon: const Icon(Icons.edit_outlined),
+                return ShadIconButton.ghost(
+                  icon: const Icon(LucideIcons.pencil, size: 20),
                   onPressed: () => context.push(
                     AppRoutes.diaryEdit.replaceFirst(':id', diaryId),
                   ),
-                  tooltip: '编辑',
                 );
               }),
           diaryAsync.whenOrNull(data: (diary) {
                 if (diary == null) return null;
-                return IconButton(
-                  icon: const Icon(Icons.delete_outline),
+                return ShadIconButton.ghost(
+                  icon: const Icon(LucideIcons.trash2, size: 20),
                   onPressed: () => _confirmDelete(context, ref, diaryId),
-                  tooltip: '删除',
                 );
               }),
         ].whereType<Widget>().toList(),
@@ -55,18 +55,16 @@ class DiaryDetailPage extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
+              Icon(LucideIcons.alertCircle, size: 48, color: scheme.destructive),
               const SizedBox(height: 12),
-              Text('加载失败', style: theme.textTheme.titleMedium),
+              Text('加载失败', style: textTheme.p),
               const SizedBox(height: 4),
               Text(
                 err.toString(),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+                style: textTheme.small.copyWith(color: scheme.mutedForeground),
               ),
               const SizedBox(height: 16),
-              OutlinedButton(
+              ShadButton.outline(
                 onPressed: () => ref.invalidate(diaryProvider(diaryId)),
                 child: const Text('重试'),
               ),
@@ -79,34 +77,38 @@ class DiaryDetailPage extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.auto_stories, size: 48, color: theme.colorScheme.outline),
+                  Icon(LucideIcons.bookOpen, size: 48, color: scheme.mutedForeground),
                   const SizedBox(height: 12),
-                  Text('日记不存在或已被删除', style: theme.textTheme.titleMedium),
+                  Text('日记不存在或已被删除', style: textTheme.p),
                 ],
               ),
             );
           }
-          return _DiaryContent(diary: diary, theme: theme);
+          return _DiaryContent(diary: diary);
         },
       ),
     );
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref, String id) {
-    showDialog(
+    showShadDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => ShadDialog.alert(
         title: const Text('删除日记'),
-        content: const Text('确定要删除这篇日记吗？'),
+        description: const Text('确定要删除这篇日记吗？'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-          FilledButton(
+          ShadButton.outline(
+            child: const Text('取消'),
+            onPressed: () => Navigator.of(ctx).pop(),
+          ),
+          ShadButton.destructive(
+            child: const Text('删除'),
             onPressed: () async {
-              final ok = await ref.read(diaryListProvider.notifier).deleteDiary(id);
-              if (ctx.mounted) Navigator.pop(ctx);
+              final ok =
+                  await ref.read(diaryListProvider.notifier).deleteDiary(id);
+              if (ctx.mounted) Navigator.of(ctx).pop();
               if (ok && context.mounted) context.go(AppRoutes.home);
             },
-            child: const Text('删除'),
           ),
         ],
       ),
@@ -116,12 +118,13 @@ class DiaryDetailPage extends ConsumerWidget {
 
 class _DiaryContent extends StatelessWidget {
   final dynamic diary;
-  final ThemeData theme;
 
-  const _DiaryContent({required this.diary, required this.theme});
+  const _DiaryContent({required this.diary});
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = ShadTheme.of(context).textTheme;
+    final scheme = ShadTheme.of(context).colorScheme;
     final mood = diary.mood as Mood;
     final weather = diary.weather as Weather?;
     final tags = diary.tags as List<String>;
@@ -130,20 +133,22 @@ class _DiaryContent extends StatelessWidget {
         '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
         '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
 
+    // Build a ThemeData wrapper for MarkdownStyleSheet
+    final themeData = Theme.of(context);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 类型 + 心情 + 天气 + 日期
           Row(
             children: [
               Text(diary.entryType.emoji, style: const TextStyle(fontSize: 28)),
               const SizedBox(width: 8),
               Text(
                 diary.entryType.label,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: theme.colorScheme.primary,
+                style: textTheme.large.copyWith(
+                  color: scheme.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -156,50 +161,42 @@ class _DiaryContent extends StatelessWidget {
                 const SizedBox(width: 4),
                 Text(
                   weather.label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  style: textTheme.small.copyWith(color: scheme.mutedForeground),
                 ),
               ],
               const Spacer(),
               Text(
                 dateStr,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.outline,
-                ),
+                style: textTheme.small.copyWith(color: scheme.mutedForeground),
               ),
             ],
           ),
           const SizedBox(height: 20),
-          // 标题
           Text(
             diary.title.isEmpty ? '（无标题）' : diary.title,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: textTheme.h3,
           ),
           const SizedBox(height: 16),
-          // Markdown 渲染正文
           MarkdownBody(
             data: diary.content.isEmpty ? '（暂无内容）' : diary.content,
             selectable: true,
-            styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-              h1: theme.textTheme.headlineMedium,
-              h2: theme.textTheme.titleLarge,
-              h3: theme.textTheme.titleMedium,
-              p: theme.textTheme.bodyLarge?.copyWith(height: 1.8),
-              code: theme.textTheme.bodyMedium?.copyWith(
+            styleSheet: MarkdownStyleSheet.fromTheme(themeData).copyWith(
+              h1: themeData.textTheme.headlineMedium,
+              h2: themeData.textTheme.titleLarge,
+              h3: themeData.textTheme.titleMedium,
+              p: themeData.textTheme.bodyLarge?.copyWith(height: 1.8),
+              code: themeData.textTheme.bodyMedium?.copyWith(
                 fontFamily: 'monospace',
-                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                backgroundColor: themeData.colorScheme.surfaceContainerHighest,
                 fontSize: 13,
               ),
               codeblockDecoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
+                color: themeData.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
               blockquoteDecoration: BoxDecoration(
                 border: Border(
-                  left: BorderSide(color: theme.colorScheme.primary, width: 3),
+                  left: BorderSide(color: scheme.primary, width: 3),
                 ),
               ),
             ),
@@ -210,9 +207,8 @@ class _DiaryContent extends StatelessWidget {
               spacing: 8,
               runSpacing: 6,
               children: tags.map((tag) {
-                return Chip(
-                  label: Text('#$tag'),
-                  visualDensity: VisualDensity.compact,
+                return ShadBadge.secondary(
+                  child: Text('#$tag', style: const TextStyle(fontSize: 12)),
                 );
               }).toList(),
             ),

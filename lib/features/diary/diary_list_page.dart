@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../core/routes/app_router.dart';
 import '../../data/models/diary.dart';
@@ -37,7 +38,8 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
   }
 
   void _onScroll() {
-    if (_scrollCtrl.position.pixels >= _scrollCtrl.position.maxScrollExtent - 200) {
+    if (_scrollCtrl.position.pixels >=
+        _scrollCtrl.position.maxScrollExtent - 200) {
       ref.read(diaryListProvider.notifier).loadDiaries();
     }
   }
@@ -55,7 +57,6 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
   @override
   Widget build(BuildContext context) {
     final listState = ref.watch(diaryListProvider);
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: _showSearch
@@ -85,52 +86,49 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
           : AppBar(
               title: const Text('全部记录'),
               actions: [
-                IconButton(
-                  icon: const Icon(Icons.search),
+                ShadIconButton.ghost(
+                  icon: const Icon(LucideIcons.search),
                   onPressed: () => setState(() => _showSearch = true),
-                  tooltip: '搜索',
                 ),
-                IconButton(
-                  icon: const Icon(Icons.add),
+                ShadIconButton.ghost(
+                  icon: const Icon(LucideIcons.plus),
                   onPressed: () => context.push(AppRoutes.diaryNew),
-                  tooltip: '写记录',
                 ),
               ],
             ),
       body: Column(
         children: [
-          // 搜索标签（显示当前搜索词）
           if (listState.isSearching && !_showSearch)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Row(
                 children: [
-                  Chip(
-                    label: Text('🔍 ${listState.searchQuery}'),
-                    deleteIcon: const Icon(Icons.close, size: 16),
-                    onDeleted: _clearSearch,
-                    visualDensity: VisualDensity.compact,
+                  ShadBadge.secondary(
+                    child: InkWell(
+                      onTap: _clearSearch,
+                      child: Text('🔍 ${listState.searchQuery} ✕'),
+                    ),
                   ),
                 ],
               ),
             ),
-          // 心情筛选栏
           _MoodFilterBar(
             selected: listState.filterMood,
             onChanged: (mood) {
               ref.read(diaryListProvider.notifier).setMoodFilter(mood);
             },
           ),
-          // 日记列表
-          Expanded(
-            child: _buildList(listState, theme),
-          ),
+          Expanded(child: _buildList(listState)),
         ],
       ),
     );
   }
 
-  Widget _buildList(DiaryListState state, ThemeData theme) {
+  Widget _buildList(DiaryListState state) {
+    final scheme = ShadTheme.of(context).colorScheme;
+    final textTheme = ShadTheme.of(context).textTheme;
+
     if (state.isLoading && state.diaries.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -140,11 +138,14 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.cloud_off, size: 48, color: theme.colorScheme.error),
+            Icon(LucideIcons.cloudOff, size: 48, color: scheme.destructive),
             const SizedBox(height: 12),
-            Text(state.error!, style: TextStyle(color: theme.colorScheme.error)),
+            Text(
+              state.error!,
+              style: TextStyle(color: scheme.destructive),
+            ),
             const SizedBox(height: 12),
-            OutlinedButton(
+            ShadButton.outline(
               onPressed: () =>
                   ref.read(diaryListProvider.notifier).loadDiaries(refresh: true),
               child: const Text('重试'),
@@ -161,23 +162,19 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              isSearching ? Icons.search_off : Icons.auto_stories,
+              isSearching ? LucideIcons.searchX : LucideIcons.bookOpen,
               size: 64,
-              color: theme.colorScheme.outline,
+              color: scheme.mutedForeground,
             ),
             const SizedBox(height: 16),
             Text(
               isSearching ? '未找到匹配的记录' : '还没有记录',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: textTheme.p.copyWith(color: scheme.mutedForeground),
             ),
             const SizedBox(height: 8),
             Text(
               isSearching ? '试试其他关键词' : '点击右上角 + 开始书写',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.outline,
-              ),
+              style: textTheme.small.copyWith(color: scheme.mutedForeground),
             ),
           ],
         ),
@@ -186,21 +183,20 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
 
     return Column(
       children: [
-        // 搜索结果计数
         if (state.isSearching)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Text(
               '找到 ${state.diaries.length} 条结果',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.outline,
-              ),
+              style: textTheme.small.copyWith(color: scheme.mutedForeground),
             ),
           ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () async {
-              await ref.read(diaryListProvider.notifier).loadDiaries(refresh: true);
+              await ref
+                  .read(diaryListProvider.notifier)
+                  .loadDiaries(refresh: true);
             },
             child: ListView.builder(
               controller: _scrollCtrl,
@@ -263,7 +259,7 @@ class _MoodFilterBar extends StatelessWidget {
   }
 }
 
-/// 心情 chip（纯自定义，不依赖 Chip 组件的选中逻辑）
+/// 心情 chip
 class _MoodChip extends StatelessWidget {
   final String label;
   final String emoji;
@@ -279,27 +275,19 @@ class _MoodChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return Material(
-      color: isSelected ? scheme.primaryContainer : scheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          child: Text(
-            '$emoji $label',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              color: isSelected ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
+    return isSelected
+        ? ShadBadge(
+            child: InkWell(
+              onTap: onTap,
+              child: Text('$emoji $label', style: const TextStyle(fontSize: 13)),
             ),
-          ),
-        ),
-      ),
-    );
+          )
+        : ShadBadge.secondary(
+            child: InkWell(
+              onTap: onTap,
+              child: Text('$emoji $label', style: const TextStyle(fontSize: 13)),
+            ),
+          );
   }
 }
 
@@ -311,80 +299,73 @@ class _DiaryCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    final textTheme = ShadTheme.of(context).textTheme;
+    final scheme = ShadTheme.of(context).colorScheme;
     final date = diary.createdAt;
     final dateStr =
         '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        onTap: () => context.push(
-          AppRoutes.diaryDetail.replaceFirst(':id', diary.id ?? ''),
-        ),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(diary.entryType.emoji, style: const TextStyle(fontSize: 18)),
-                  const SizedBox(width: 6),
-                  Text(diary.mood.emoji, style: const TextStyle(fontSize: 18)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      diary.title.isEmpty ? '（无标题）' : diary.title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: ShadCard(
+        child: InkWell(
+          onTap: () => context.push(
+            AppRoutes.diaryDetail.replaceFirst(':id', diary.id ?? ''),
+          ),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(diary.entryType.emoji,
+                        style: const TextStyle(fontSize: 18)),
+                    const SizedBox(width: 6),
+                    Text(diary.mood.emoji,
+                        style: const TextStyle(fontSize: 18)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        diary.title.isEmpty ? '（无标题）' : diary.title,
+                        style: textTheme.p.copyWith(fontWeight: FontWeight.w600),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
+                    Text(
+                      dateStr,
+                      style: textTheme.small.copyWith(
+                        color: scheme.mutedForeground,
+                      ),
+                    ),
+                  ],
+                ),
+                if (diary.content.isNotEmpty) ...[
+                  const SizedBox(height: 8),
                   Text(
-                    dateStr,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.outline,
+                    diary.content,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.small.copyWith(
+                      color: scheme.mutedForeground,
                     ),
                   ),
                 ],
-              ),
-              if (diary.content.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  diary.content,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                if (diary.tags.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: diary.tags.map((tag) {
+                      return ShadBadge.secondary(
+                        child: Text('#$tag', style: const TextStyle(fontSize: 11)),
+                      );
+                    }).toList(),
                   ),
-                ),
+                ],
               ],
-              if (diary.tags.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: diary.tags.map((tag) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        '#$tag',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSecondaryContainer,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ],
+            ),
           ),
         ),
       ),

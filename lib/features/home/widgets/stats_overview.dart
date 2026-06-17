@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../../data/models/enums.dart';
 
 /// 数据概览卡片组。
-///
-/// 横向排列 4 张统计卡片（总记录数 / 本周新增 / 连续天数 / 本周心情）。
-/// 桌面 4 列 → 平板/手机 2×2 网格。
 class StatsOverview extends StatelessWidget {
   final int totalCount;
   final int weekCount;
@@ -26,28 +24,28 @@ class StatsOverview extends StatelessWidget {
 
     final cards = [
       _StatCard(
-        icon: Icons.auto_stories,
+        icon: LucideIcons.bookOpen,
         value: '$totalCount',
         label: '总记录数',
-        color: Colors.deepPurple,
+        color: const Color(0xFF7C3AED),
       ),
       _StatCard(
-        icon: Icons.date_range,
+        icon: LucideIcons.calendarRange,
         value: '$weekCount',
         label: '本周新增',
-        color: Colors.teal,
+        color: const Color(0xFF0D9488),
       ),
       _StatCard(
-        icon: Icons.local_fire_department,
+        icon: LucideIcons.flame,
         value: '$streak',
         label: '连续天数',
-        color: Colors.orange,
+        color: const Color(0xFFEA580C),
       ),
       _StatCard(
-        icon: Icons.sentiment_satisfied,
+        icon: LucideIcons.smile,
         value: weekTopMood?.emoji ?? '—',
         label: '本周心情',
-        color: Colors.green,
+        color: const Color(0xFF16A34A),
         isEmoji: weekTopMood != null,
         subtitle: weekTopMood?.label,
       ),
@@ -62,7 +60,6 @@ class StatsOverview extends StatelessWidget {
       );
     }
 
-    // 平板 / 手机：2×2 网格
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Wrap(
@@ -99,10 +96,9 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final textTheme = ShadTheme.of(context).textTheme;
 
-    return Card(
+    return ShadCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
@@ -127,19 +123,14 @@ class _StatCard extends StatelessWidget {
                 children: [
                   Text(
                     isEmoji ? (subtitle ?? label) : value,
-                    style: theme.textTheme.titleMedium?.copyWith(
+                    style: textTheme.p.copyWith(
                       fontWeight: FontWeight.bold,
                       color: isEmoji ? null : color,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    label,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
+                  Text(label, style: textTheme.muted),
                 ],
               ),
             ),
