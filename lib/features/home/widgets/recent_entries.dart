@@ -6,16 +6,30 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../core/routes/app_router.dart';
 import '../../../data/models/diary.dart';
 
-/// 最近记录组件 — 横向卡片，用户手动滚动浏览。
-class RecentEntries extends ConsumerWidget {
+/// 最近记录组件 — 横向卡片，带滚动条拖动。
+class RecentEntries extends ConsumerStatefulWidget {
   final List<Diary> diaries;
 
   const RecentEntries({super.key, required this.diaries});
 
+  @override
+  ConsumerState<RecentEntries> createState() => _RecentEntriesState();
+}
+
+class _RecentEntriesState extends ConsumerState<RecentEntries> {
+  final _scrollCtrl = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
   static const _cardWidth = 200.0;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final diaries = widget.diaries;
     final textTheme = ShadTheme.of(context).textTheme;
     final scheme = ShadTheme.of(context).colorScheme;
     final isDesktop = MediaQuery.of(context).size.width >= 1200;
@@ -67,22 +81,28 @@ class RecentEntries extends ConsumerWidget {
             children: [
               _buildHeader(context),
               const SizedBox(height: 12),
-              SizedBox(
-                height: isDesktop ? 160 : 140,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: diaries.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: EdgeInsets.only(
-                        right: index < diaries.length - 1 ? 12 : 0,
-                      ),
-                      child: _DiaryCard(
-                        diary: diaries[index],
-                        width: _cardWidth,
-                      ),
-                    );
-                  },
+              Scrollbar(
+                controller: _scrollCtrl,
+                thickness: 6,
+                radius: const Radius.circular(3),
+                child: SizedBox(
+                  height: isDesktop ? 160 : 140,
+                  child: ListView.builder(
+                    controller: _scrollCtrl,
+                    scrollDirection: Axis.horizontal,
+                    itemCount: diaries.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          right: index < diaries.length - 1 ? 12 : 0,
+                        ),
+                        child: _DiaryCard(
+                          diary: diaries[index],
+                          width: _cardWidth,
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ],

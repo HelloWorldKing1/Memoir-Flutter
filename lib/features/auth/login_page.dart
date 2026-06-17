@@ -94,6 +94,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ShadInputFormField(
                     id: 'email',
                     leading: const Icon(LucideIcons.mail, size: 18),
+                    trailing: const SizedBox(width: 36, height: 36),
                     label: const Text('邮箱'),
                     placeholder: const Text('请输入邮箱'),
                     keyboardType: TextInputType.emailAddress,

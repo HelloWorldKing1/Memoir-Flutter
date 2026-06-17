@@ -209,83 +209,28 @@ class _DailyInspirationState extends ConsumerState<DailyInspiration> {
   }
 }
 
-/// 倒计时进度条。
-class _CountdownProgress extends StatefulWidget {
+/// 倒计时进度条（TweenAnimationBuilder 驱动，帧级丝滑）。
+class _CountdownProgress extends StatelessWidget {
   final VoidCallback onTimeUp;
 
   const _CountdownProgress({super.key, required this.onTimeUp});
 
   @override
-  State<_CountdownProgress> createState() => _CountdownProgressState();
-}
-
-class _CountdownProgressState extends State<_CountdownProgress> {
-  Timer? _timer;
-  double _elapsed = 0;
-  int _remaining = 10;
-
-  static const _totalSeconds = 10;
-  static const _tickMs = 250;
-
-  @override
-  void initState() {
-    super.initState();
-    _start();
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  void _start() {
-    _timer?.cancel();
-    _elapsed = 0;
-    _remaining = _totalSeconds;
-    if (!mounted) return;
-
-    _timer = Timer.periodic(const Duration(milliseconds: _tickMs), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      _elapsed += _tickMs / 1000.0;
-      if (_elapsed >= _totalSeconds) {
-        _elapsed = _totalSeconds.toDouble();
-        _remaining = 0;
-        timer.cancel();
-        setState(() {});
-        widget.onTimeUp();
-        return;
-      }
-      final newRemaining = (_totalSeconds - _elapsed).ceil();
-      if (newRemaining != _remaining) {
-        _remaining = newRemaining;
-      }
-      setState(() {});
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final textTheme = ShadTheme.of(context).textTheme;
-    final scheme = ShadTheme.of(context).colorScheme;
-    final progress = (_elapsed / _totalSeconds).clamp(0.0, 1.0);
-
-    return Column(
-      children: [
-        ShadProgress(value: progress),
-        const SizedBox(height: 6),
-        Text(
-          '${_remaining}s 后刷新',
-          style: textTheme.small.copyWith(
-            color: scheme.mutedForeground.withValues(alpha: 0.6),
-            fontSize: 10,
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(seconds: 120),
+      curve: Curves.linear,
+      onEnd: onTimeUp,
+      builder: (context, value, _) {
+        return SizedBox(
+          height: 2,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(1),
+            child: ShadProgress(value: value),
           ),
-        ),
-        const SizedBox(height: 4),
-      ],
+        );
+      },
     );
   }
 }

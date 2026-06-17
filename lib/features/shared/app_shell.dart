@@ -274,10 +274,10 @@ class _ThemePopoverContent extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('外观设置', style: textTheme.h4),
-          const SizedBox(height: 2),
-          Text('选择主题模式和颜色方案', style: textTheme.muted),
-          const SizedBox(height: 14),
+          // Text('外观设置', style: textTheme.h4),
+          // const SizedBox(height: 2),
+          // Text('选择主题模式和颜色方案', style: textTheme.muted),
+          // const SizedBox(height: 14),
 
           // 主题模式
           Text('主题模式', style: textTheme.small),
