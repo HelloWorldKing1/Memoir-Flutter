@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pocketbase/pocketbase.dart';
 
 import '../../core/di/providers.dart';
 import '../../data/models/inspiration.dart';
 
-/// 本地 fallback 灵感 —— 网络失败或数据库无数据时使用
+/// 本地 fallback 灵感（仅当网络彻底不可用时使用）
 final _fallbackInspirations = [
   Inspiration(
     emoji: '✍️',
@@ -92,26 +94,70 @@ final _epoch = DateTime(2024, 1, 1);
 /// 灵感列表 FutureProvider
 ///
 /// 从 PocketBase `inspirations` 集合拉取所有启用的灵感。
-/// 网络失败时自动降级到本地 fallback（10 条经典文案）。
+/// - 数据库有数据 → 直接返回
+/// - 数据库有集合但无数据 → 返回空列表（提示用户运行种子脚本）
+/// - 集合不存在 (404) → 抛出明确错误，引导创建集合
+/// - 网络不可用 → 降级到本地 fallback
 final inspirationListProvider = FutureProvider<List<Inspiration>>((ref) async {
   final pb = ref.watch(pbClientProvider);
 
   try {
+    // 先尝试不带 filter 的请求，确认集合和字段可用
     final result = await pb.collection('inspirations').getList(
           page: 1,
           perPage: 200,
-          filter: 'isActive = true',
-          sort: '-priority,-created',
         );
 
     final inspirations =
         result.items.map((r) => Inspiration.fromRecord(r.toJson())).toList();
 
     if (inspirations.isNotEmpty) return inspirations;
-  } catch (_) {
-    // 网络错误，降级到 fallback
-  }
 
-  // 数据库无数据或网络失败 → 使用本地 fallback
-  return _fallbackInspirations;
+    // 集合存在但无数据（尚未播种）
+    debugPrint('[inspiration] inspirations 集合为空，请运行 seed_inspirations 脚本导入数据');
+    return [];
+  } on ClientException catch (e) {
+    final statusCode = e.statusCode;
+
+    // 打印完整响应体，方便排查
+    debugPrint('[inspiration] ClientException: status=$statusCode, '
+        'response=${e.response}, originalError=${e.originalError}');
+
+    if (statusCode == 404) {
+      throw Exception(
+        'PocketBase 中缺少 inspirations 集合。'
+        '请在 Admin UI 创建集合（字段参考 data/models/inspiration.dart），'
+        '然后运行 scripts/seed_inspirations.ps1 导入种子数据。',
+      );
+    }
+
+    if (statusCode == 400) {
+      throw Exception(
+        '请求格式错误 (400): ${e.response['message'] ?? "未知"}。'
+        '请检查 inspirations 集合的字段名和 API 规则是否正确。',
+      );
+    }
+
+    final detail = e.response['message'] ?? e.originalError ?? '未知错误';
+    throw Exception('服务器错误 ($statusCode): $detail');
+  } catch (e) {
+    // 判断是否为网络层面的不可达（如 SocketException、超时等）
+    // PocketBase SDK 在无网时可能抛 ClientException 或其他异常
+    final msg = e.toString().toLowerCase();
+    final isNetworkError =
+        msg.contains('socket') ||
+        msg.contains('host') ||
+        msg.contains('connection') ||
+        msg.contains('timeout') ||
+        msg.contains('network') ||
+        msg.contains('internet');
+
+    if (isNetworkError) {
+      debugPrint('[inspiration] 网络不可达，降级到本地 fallback: $e');
+      return _fallbackInspirations;
+    }
+
+    // 其他错误（包括我们上面抛出的 Exception）→ 继续抛出
+    rethrow;
+  }
 });
