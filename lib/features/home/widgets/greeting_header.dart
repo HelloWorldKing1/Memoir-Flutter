@@ -41,13 +41,13 @@ class GreetingHeader extends ConsumerWidget {
       placeholder: Text(
         (displayName.isNotEmpty ? displayName[0] : '你').toUpperCase(),
       ),
-      size: Size.square(isDesktop ? 48 : 40),
+      size: Size.square(isDesktop ? 56 : 48),
     );
 
     if (isDesktop) {
       return Container(
         margin: const EdgeInsets.symmetric(horizontal: 20),
-        padding: const EdgeInsets.only(left: 20, top: 16, bottom: 16, right: 16),
+        padding: const EdgeInsets.only(left: 24, top: 28, bottom: 28, right: 24),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -62,7 +62,7 @@ class GreetingHeader extends ConsumerWidget {
         child: Row(
           children: [
             avatarWidget,
-            const SizedBox(width: 14),
+            const SizedBox(width: 18),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,9 +70,9 @@ class GreetingHeader extends ConsumerWidget {
                 children: [
                   Text(
                     '$emoji $greeting，$displayName！',
-                    style: textTheme.h4,
+                    style: textTheme.h3,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(dateStr, style: textTheme.muted),
                 ],
               ),
@@ -85,7 +85,7 @@ class GreetingHeader extends ConsumerWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -99,9 +99,9 @@ class GreetingHeader extends ConsumerWidget {
                   children: [
                     Text(
                       '$emoji $greeting，$displayName！',
-                      style: textTheme.large,
+                      style: textTheme.h4,
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(dateStr, style: textTheme.muted),
                   ],
                 ),

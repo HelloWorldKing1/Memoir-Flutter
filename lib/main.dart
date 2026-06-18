@@ -44,7 +44,17 @@ class MemoirApp extends ConsumerWidget {
         return MaterialApp.router(
           title: AppConstants.appName,
           debugShowCheckedModeBanner: false,
-          theme: Theme.of(context),
+          theme: Theme.of(context).copyWith(
+            textTheme: Theme.of(context).textTheme.apply(
+                  fontFamilyFallback: const [
+                    'PingFang SC',
+                    'Microsoft YaHei',
+                    'Segoe UI Emoji',
+                    'Apple Color Emoji',
+                    'sans-serif',
+                  ],
+                ),
+          ),
           routerConfig: router,
           localizationsDelegates: const [
             GlobalShadLocalizations.delegate,
