@@ -266,23 +266,43 @@ final diaryListProvider =
 
 /// 单篇日记 Provider
 ///
-/// 优先从已加载的列表中查找（零网络开销），
-/// 列表中没有时才请求 PocketBase API。
+/// 查找优先级：
+/// 1. 日记列表缓存（diaryListProvider）
+/// 2. 首页最近记录缓存（homeProvider.recentDiaries）
+/// 3. PocketBase API（仅 404 返回 null，其他错误向上抛出）
 final diaryProvider = FutureProvider.family<Diary?, String>((ref, diaryId) async {
-  // 优先从已加载的列表中查找
+  // Tier 1: 日记列表缓存
   final listState = ref.read(diaryListProvider);
   for (final d in listState.diaries) {
     if (d.id == diaryId) return d;
   }
 
-  // 列表中没有，从 API 获取
+  // Tier 2: 首页最近记录缓存（解决从首页点击时 diaryListProvider 为空的问题）
+  final homeState = ref.read(homeProvider).value;
+  if (homeState != null) {
+    for (final d in homeState.recentDiaries) {
+      if (d.id == diaryId) return d;
+    }
+  }
+
+  // Tier 3: PocketBase API
   final pb = ref.read(pbClientProvider);
   try {
     final record = await pb.collection('diaries').getOne(diaryId);
     return Diary.fromRecord(record.toJson());
+  } on ClientException catch (e) {
+    // PocketBase 客户端异常：区分 404（记录不存在）和其他错误
+    if (e.statusCode == 404) {
+      // ignore: avoid_print
+      print('[diaryProvider] 日记 $diaryId 不存在（404）');
+      return null;
+    }
+    // ignore: avoid_print
+    print('[diaryProvider] 获取日记 $diaryId 失败 (HTTP ${e.statusCode}): $e');
+    rethrow;
   } catch (e) {
     // ignore: avoid_print
     print('[diaryProvider] 获取日记 $diaryId 失败: $e');
-    return null;
+    rethrow;
   }
 });
