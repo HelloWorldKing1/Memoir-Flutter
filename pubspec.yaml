@@ -21,9 +21,9 @@ dependencies:
   connectivity_plus: ^7.1.1
   http: ^1.2.0
   image_picker: ^1.2.2
-  share_plus: ^13.1.0
+  share_plus: ^12.0.2
   flutter_markdown: ^0.7.7+1
-  markdown_toolbar: ^0.5.0
+  appflowy_editor: ^6.2.0
   shadcn_ui: ^0.54.0
 
 dev_dependencies:

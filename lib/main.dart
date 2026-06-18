@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:appflowy_editor/appflowy_editor.dart';
 
 import 'core/constants/app_constants.dart';
 import 'core/pocketbase/pb_client.dart';
@@ -47,6 +48,7 @@ class MemoirApp extends ConsumerWidget {
           routerConfig: router,
           localizationsDelegates: const [
             GlobalShadLocalizations.delegate,
+            AppFlowyEditorLocalizations.delegate,
           ],
           builder: (context, child) {
             return ShadAppBuilder(child: child!);
