@@ -28,23 +28,28 @@ class DiaryListState {
 
   bool get isSearching => searchQuery.isNotEmpty;
 
+  // 哨兵值，用于区分「未传参」和「显式传 null」
+  static const _sentinel = Object();
+
   DiaryListState copyWith({
     List<Diary>? diaries,
     bool? isLoading,
-    String? error,
+    Object? error = _sentinel,
     int? page,
     bool? hasMore,
-    Mood? filterMood,
-    String? searchQuery,
+    Object? filterMood = _sentinel,
+    Object? searchQuery = _sentinel,
   }) {
     return DiaryListState(
       diaries: diaries ?? this.diaries,
       isLoading: isLoading ?? this.isLoading,
-      error: error,
+      error: error == _sentinel ? this.error : error as String?,
       page: page ?? this.page,
       hasMore: hasMore ?? this.hasMore,
-      filterMood: filterMood ?? this.filterMood,
-      searchQuery: searchQuery ?? this.searchQuery,
+      filterMood:
+          filterMood == _sentinel ? this.filterMood : filterMood as Mood?,
+      searchQuery:
+          searchQuery == _sentinel ? this.searchQuery : searchQuery as String,
     );
   }
 }
